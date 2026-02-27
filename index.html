@@ -2,36 +2,146 @@
 <html lang="it">
 <head>
 <meta charset="UTF-8">
-<title>AntiTruffa</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AntiTruffa - Analisi messaggi sospetti</title>
+
 <style>
-body { font-family: Arial; background:#f5f5f5; padding:40px; }
-textarea { width:100%; height:150px; padding:10px; }
-button { padding:10px 20px; margin-top:10px; }
-.result { margin-top:20px; padding:15px; background:white; border-radius:8px; }
-.low { color:green; }
-.medium { color:orange; }
-.high { color:red; }
+body {
+    margin: 0;
+    font-family: "Segoe UI", Arial, sans-serif;
+    background: #f4f6f9;
+    color: #1e1e1e;
+}
+
+.container {
+    max-width: 900px;
+    margin: 60px auto;
+    padding: 40px;
+    background: white;
+    border-radius: 14px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.08);
+}
+
+h1 {
+    margin-top: 0;
+    font-weight: 600;
+}
+
+.subtitle {
+    color: #6c757d;
+    margin-bottom: 30px;
+}
+
+textarea {
+    width: 100%;
+    height: 150px;
+    padding: 14px;
+    border-radius: 8px;
+    border: 1px solid #ddd;
+    font-size: 15px;
+    resize: none;
+}
+
+button {
+    margin-top: 15px;
+    padding: 12px 22px;
+    border: none;
+    border-radius: 8px;
+    background: #1f6feb;
+    color: white;
+    font-weight: 600;
+    cursor: pointer;
+    transition: 0.2s;
+}
+
+button:hover {
+    background: #174ea6;
+}
+
+.result {
+    margin-top: 30px;
+    display: none;
+}
+
+.score-bar {
+    height: 12px;
+    border-radius: 6px;
+    background: #e0e0e0;
+    overflow: hidden;
+    margin-top: 10px;
+}
+
+.score-fill {
+    height: 100%;
+    width: 0%;
+    transition: width 0.6s ease;
+}
+
+.low { background: #2ecc71; }
+.medium { background: #f39c12; }
+.high { background: #e74c3c; }
+
+.badge {
+    display: inline-block;
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 600;
+    margin-top: 10px;
+}
+
+.badge.low { background:#eafaf1; color:#27ae60; }
+.badge.medium { background:#fff4e6; color:#d35400; }
+.badge.high { background:#fdecea; color:#c0392b; }
+
+footer {
+    text-align:center;
+    margin-top: 40px;
+    font-size: 13px;
+    color: #888;
+}
 </style>
 </head>
+
 <body>
 
-<h2>Hai ricevuto un messaggio sospetto?</h2>
+<div class="container">
+    <h1>AntiTruffa</h1>
+    <div class="subtitle">
+        Analisi automatica di messaggi sospetti. Non inserire mai OTP o password reali.
+    </div>
 
-<textarea id="input" placeholder="Incolla qui il messaggio..."></textarea>
-<br>
-<button onclick="analyze()">Verifica</button>
+    <textarea id="input" placeholder="Incolla qui il messaggio..."></textarea>
+    <button onclick="analyze()">Analizza messaggio</button>
 
-<div class="result" id="result" style="display:none;"></div>
+    <div class="result" id="result">
+        <h3 id="riskText"></h3>
+        <div class="badge" id="badge"></div>
+
+        <div class="score-bar">
+            <div class="score-fill" id="bar"></div>
+        </div>
+
+        <p id="details"></p>
+    </div>
+</div>
+
+<footer>
+    AntiTruffa © 2026 – Franco Ficara
+</footer>
 
 <script>
 function analyze() {
     const text = document.getElementById("input").value.toLowerCase();
     let score = 0;
+    let signals = [];
 
-    if (text.includes("http")) score += 15;
-    if (text.includes("bit.ly") || text.includes("tinyurl")) score += 25;
-    if (text.match(/password|otp|codice|carta|iban|credenziali/)) score += 25;
-    if (text.match(/urgente|bloccato|sospeso|verifica|aggiorna/)) score += 20;
+    if (text.includes("http")) { score += 15; signals.push("Link presente"); }
+    if (text.includes("bit.ly") || text.includes("tinyurl")) { score += 25; signals.push("Shortener rilevato"); }
+    if (text.match(/password|otp|codice|carta|iban|credenziali/)) { score += 25; signals.push("Richiesta dati sensibili"); }
+    if (text.match(/urgente|bloccato|sospeso|verifica|aggiorna/)) { score += 20; signals.push("Tono urgente/minaccia"); }
+
+    if (score > 100) score = 100;
 
     let level = "BASSO";
     let css = "low";
@@ -39,18 +149,20 @@ function analyze() {
     if (score >= 60) { level = "ALTO"; css = "high"; }
     else if (score >= 30) { level = "MEDIO"; css = "medium"; }
 
-    const resultDiv = document.getElementById("result");
-    resultDiv.style.display = "block";
-    resultDiv.innerHTML = `
-        <h3 class="${css}">Rischio ${level} (${score}/100)</h3>
-        <p><strong>Consiglio:</strong></p>
-        <ul>
-            <li>Non cliccare link sospetti</li>
-            <li>Non inserire password o OTP</li>
-            <li>Controlla solo da app ufficiali</li>
-            <li>Segnala come spam</li>
-        </ul>
-    `;
+    document.getElementById("result").style.display = "block";
+    document.getElementById("riskText").innerText = `Rischio ${level} (${score}/100)`;
+
+    const badge = document.getElementById("badge");
+    badge.className = "badge " + css;
+    badge.innerText = level;
+
+    const bar = document.getElementById("bar");
+    bar.className = "score-fill " + css;
+    bar.style.width = score + "%";
+
+    document.getElementById("details").innerHTML =
+        "<strong>Segnali rilevati:</strong><br>" + 
+        (signals.length ? signals.join("<br>") : "Nessun indicatore rilevato.");
 }
 </script>
 
