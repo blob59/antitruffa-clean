@@ -1,1 +1,58 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<title>AntiTruffa</title>
+<style>
+body { font-family: Arial; background:#f5f5f5; padding:40px; }
+textarea { width:100%; height:150px; padding:10px; }
+button { padding:10px 20px; margin-top:10px; }
+.result { margin-top:20px; padding:15px; background:white; border-radius:8px; }
+.low { color:green; }
+.medium { color:orange; }
+.high { color:red; }
+</style>
+</head>
+<body>
 
+<h2>Hai ricevuto un messaggio sospetto?</h2>
+
+<textarea id="input" placeholder="Incolla qui il messaggio..."></textarea>
+<br>
+<button onclick="analyze()">Verifica</button>
+
+<div class="result" id="result" style="display:none;"></div>
+
+<script>
+function analyze() {
+    const text = document.getElementById("input").value.toLowerCase();
+    let score = 0;
+
+    if (text.includes("http")) score += 15;
+    if (text.includes("bit.ly") || text.includes("tinyurl")) score += 25;
+    if (text.match(/password|otp|codice|carta|iban|credenziali/)) score += 25;
+    if (text.match(/urgente|bloccato|sospeso|verifica|aggiorna/)) score += 20;
+
+    let level = "BASSO";
+    let css = "low";
+
+    if (score >= 60) { level = "ALTO"; css = "high"; }
+    else if (score >= 30) { level = "MEDIO"; css = "medium"; }
+
+    const resultDiv = document.getElementById("result");
+    resultDiv.style.display = "block";
+    resultDiv.innerHTML = `
+        <h3 class="${css}">Rischio ${level} (${score}/100)</h3>
+        <p><strong>Consiglio:</strong></p>
+        <ul>
+            <li>Non cliccare link sospetti</li>
+            <li>Non inserire password o OTP</li>
+            <li>Controlla solo da app ufficiali</li>
+            <li>Segnala come spam</li>
+        </ul>
+    `;
+}
+</script>
+
+</body>
+</html>
