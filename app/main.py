@@ -35,7 +35,7 @@ class TextRequest(BaseModel):
 @app.post("/api/analyze/text")
 def api_analyze_text(req: TextRequest):
     score, level, signals, category, advice = analyze_text(req.text)
-domains, phones, fp = [], [], ""
+    domains, phones, fp = [], [], ""
     return {
         "risk_score": score,
         "risk_level": level,
