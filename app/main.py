@@ -8,9 +8,9 @@ from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.templating import Jinja2Templates
 from pydantic import BaseModel
 
-from .analyze_text import analyze_text
-from .analyze_image import analyze_image_bytes
-from .storage import append_report, load_reports
+from app.analyze_text import analyze_text
+from app.analyze_image import analyze_image_bytes
+from app.storage import append_report, load_reports
 
 MAX_IMAGE_MB = int(os.getenv("MAX_IMAGE_MB", "10"))
 
