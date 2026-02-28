@@ -1,5 +1,9 @@
 from __future__ import annotations
+
 import os
+import re
+import hashlib
+from urllib.parse import urlparse
 from datetime import datetime, timedelta
 from typing import Any, Dict, List
 
@@ -14,8 +18,60 @@ from app.storage import append_report, load_reports
 
 MAX_IMAGE_MB = int(os.getenv("MAX_IMAGE_MB", "10"))
 
-app = FastAPI(title="AntiTruffa (Solo Python)", version="1.0.0")
+app = FastAPI(title="AntiTruffa — Franco Ficara", version="1.1.0")
 templates = Jinja2Templates(directory=os.path.join(os.path.dirname(__file__), "templates"))
+
+# ---------------- Blacklist domini ----------------
+SUSPICIOUS_TLDS = {
+    "xyz", "top", "work", "click", "live", "site", "icu", "monster", "tk", "gq", "cf", "ml", "ga"
+}
+
+DOMAIN_BLACKLIST = {
+    "secure-banca-login.xyz",
+    "secure-banca-verifica-login.xyz",
+    "banca-verifica-login.xyz",
+}
+
+DOMAIN_KEYWORDS = {
+    "login", "verify", "verifica", "secure", "security", "update", "aggiorna",
+    "account", "auth", "bank", "banca"
+}
+
+def extract_domains_from_text(text: str) -> list[str]:
+    text = text or ""
+    urls = re.findall(r"https?://[^\s)>\]]+", text, flags=re.IGNORECASE)
+    domains: list[str] = []
+    for u in urls:
+        try:
+            p = urlparse(u)
+            host = (p.netloc or "").lower()
+            host = host.split("@")[-1]
+            host = host.split(":")[0]
+            host = host.lstrip("www.")
+            if host:
+                domains.append(host)
+        except Exception:
+            continue
+    out: list[str] = []
+    for d in domains:
+        if d not in out:
+            out.append(d)
+    return out
+
+def domain_is_suspicious(domain: str) -> tuple[bool, str]:
+    d = (domain or "").lower().strip()
+    if not d:
+        return False, ""
+    if d in DOMAIN_BLACKLIST:
+        return True, "dominio in blacklist"
+    parts = d.split(".")
+    tld = parts[-1] if len(parts) >= 2 else ""
+    if tld in SUSPICIOUS_TLDS:
+        return True, f"TLD sospetto .{tld}"
+    for kw in DOMAIN_KEYWORDS:
+        if kw in d:
+            return True, f"keyword sospetta: {kw}"
+    return False, ""
 
 # ---------------- Pagine ----------------
 @app.get("/", response_class=HTMLResponse)
@@ -35,7 +91,32 @@ class TextRequest(BaseModel):
 @app.post("/api/analyze/text")
 def api_analyze_text(req: TextRequest):
     score, level, signals, category, advice = analyze_text(req.text)
-    domains, phones, fp = [], [], ""
+
+    domains = extract_domains_from_text(req.text)
+    phones: list[str] = []
+    fp = hashlib.sha256((req.text or "").encode("utf-8")).hexdigest()[:16]
+
+    suspicious_hits: list[str] = []
+    for d in domains:
+        ok, why = domain_is_suspicious(d)
+        if ok:
+            suspicious_hits.append(f"{d} ({why})")
+
+    if suspicious_hits:
+        score = min(100, score + 25)
+        signals.append({
+            "code": "DOMAIN_BLACKLIST_OR_SUSPICIOUS",
+            "weight": 25,
+            "evidence": " | ".join(suspicious_hits)[:240]
+        })
+        if score >= 70:
+            level = "alto"
+        elif score >= 30:
+            level = "medio"
+        category = "phishing_link"
+        if advice and advice[0] != "Non cliccare il link.":
+            advice = ["Non cliccare il link."] + advice
+
     return {
         "risk_score": score,
         "risk_level": level,
@@ -79,10 +160,10 @@ class ReportRequest(BaseModel):
 
 @app.post("/api/report")
 def api_report(req: ReportRequest):
-    # dedup semplice: se stesso fingerprint negli ultimi 7 giorni non riscrivere
     rows = load_reports(max_lines=5000)
     cutoff = int((datetime.utcnow() - timedelta(days=7)).timestamp())
-    for r in reversed(rows[-500:]):  # controlla ultimi 500 per velocità
+
+    for r in reversed(rows[-500:]):
         if r.get("ts", 0) < cutoff:
             break
         if r.get("fingerprint") == req.fingerprint:
@@ -102,15 +183,15 @@ def stats_summary() -> Dict[str, Any]:
     rows = [r for r in load_reports(max_lines=5000) if r.get("ts", 0) >= since_ts]
 
     total = len(rows)
-    by_level = {"basso":0,"medio":0,"alto":0}
-    by_type = {"text":0,"image":0}
-    by_category: Dict[str,int] = {}
-    signal_counts: Dict[str,int] = {}
-    day_counts: Dict[str,int] = {}
+    by_level = {"basso": 0, "medio": 0, "alto": 0}
+    by_type = {"text": 0, "image": 0}
+    by_category: Dict[str, int] = {}
+    signal_counts: Dict[str, int] = {}
+    day_counts: Dict[str, int] = {}
 
     for r in rows:
-        lvl = r.get("risk_level","basso")
-        typ = r.get("type","text")
+        lvl = r.get("risk_level", "basso")
+        typ = r.get("type", "text")
         by_level[lvl] = by_level.get(lvl, 0) + 1
         by_type[typ] = by_type.get(typ, 0) + 1
 
@@ -136,7 +217,7 @@ def stats_summary() -> Dict[str, Any]:
         "total_reports": total,
         "by_level": by_level,
         "by_type": by_type,
-        "top_categories": [{"category": c, "count": n} for c,n in top_categories],
-        "top_signals": [{"signal": s, "count": n} for s,n in top_signals],
+        "top_categories": [{"category": c, "count": n} for c, n in top_categories],
+        "top_signals": [{"signal": s, "count": n} for s, n in top_signals],
         "trend": trend,
     }
