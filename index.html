@@ -1,631 +1,171 @@
-<h1 style="color:red">NUOVA VERSIONE TEST FRANCO</h1><!doctype html>
+<!DOCTYPE html>
 <html lang="it">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>AntiTruffa — by Franco Ficara</title>
-  <meta name="description" content="AntiTruffa: strumento educativo per riconoscere phishing e truffe online. by Franco Ficara.">
-  <meta name="author" content="Franco Ficara">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AntiTruffa by Franco Ficara</title>
+    <meta name="description" content="AntiTruffa: strumento educativo per riconoscere phishing e truffe online.">
+    <meta name="author" content="Franco Ficara">
 
-  <style>
-    :root{
-      --bg: #f6f8fb;
-      --card: #ffffff;
-      --text: #0f172a;
-      --muted: #475569;
-      --border: #e2e8f0;
-      --shadow: 0 14px 40px rgba(2,6,23,.10);
-      --primary: #1d4ed8;
-      --primary-2: #2563eb;
-      --danger: #b91c1c;
-      --warn: #b45309;
-      --ok: #047857;
+    <style>
+        body {
+            margin: 0;
+            font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+            background: #f4f6f9;
+            color: #1f2937;
+        }
 
-      --radius: 18px;
-      --radius-sm: 12px;
-    }
+        header {
+            background: #0f172a;
+            color: white;
+            padding: 20px 40px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
 
-    *{ box-sizing: border-box; }
-    body{
-      margin:0;
-      font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
-      background: radial-gradient(1000px 600px at 20% -10%, rgba(37, 99, 235, .10), transparent 60%),
-                  radial-gradient(900px 500px at 90% 0%, rgba(29, 78, 216, .10), transparent 60%),
-                  var(--bg);
-      color: var(--text);
-    }
+        header h1 {
+            font-size: 20px;
+            margin: 0;
+            font-weight: 600;
+        }
 
-    a{ color: var(--primary); text-decoration: none; }
-    a:hover{ text-decoration: underline; }
+        nav a {
+            color: #93c5fd;
+            text-decoration: none;
+            margin-left: 20px;
+            font-weight: 500;
+        }
 
-    .topbar{
-      position: sticky;
-      top:0;
-      z-index: 10;
-      background: rgba(255,255,255,.80);
-      backdrop-filter: blur(10px);
-      border-bottom: 1px solid var(--border);
-    }
-    .topbar-inner{
-      max-width: 1080px;
-      margin: 0 auto;
-      padding: 16px 18px;
-      display:flex;
-      align-items:center;
-      justify-content: space-between;
-      gap: 16px;
-    }
+        nav a:hover {
+            text-decoration: underline;
+        }
 
-    .brand{
-      display:flex;
-      align-items:center;
-      gap: 12px;
-      min-width: 260px;
-    }
-    .logo{
-      width: 44px;
-      height: 44px;
-      border-radius: 14px;
-      border: 1px solid var(--border);
-      background: linear-gradient(180deg, #ffffff, #f3f6ff);
-      display:grid;
-      place-items:center;
-      box-shadow: 0 10px 25px rgba(2,6,23,.08);
-      font-size: 20px;
-    }
-    .brand-title{ font-weight: 900; letter-spacing: .2px; }
-    .brand-sub{ font-size: 12.5px; color: var(--muted); margin-top: 2px; }
-    .brand-by{ font-size: 12px; color: var(--muted); margin-top: 2px; }
+        .container {
+            max-width: 900px;
+            margin: 50px auto;
+            padding: 40px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+        }
 
-    .nav{
-      display:flex;
-      align-items:center;
-      gap: 14px;
-      font-weight: 700;
-      font-size: 14px;
-    }
-    .nav a{
-      padding: 8px 10px;
-      border-radius: 10px;
-    }
-    .nav a:hover{
-      background: #eef2ff;
-      text-decoration: none;
-    }
+        h2 {
+            margin-top: 0;
+        }
 
-    .wrap{
-      max-width: 1080px;
-      margin: 18px auto 40px;
-      padding: 0 18px;
-    }
+        textarea {
+            width: 100%;
+            height: 200px;
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid #d1d5db;
+            font-size: 15px;
+            resize: vertical;
+        }
 
-    .notice{
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-left: 6px solid var(--primary);
-      border-radius: var(--radius);
-      box-shadow: var(--shadow);
-      padding: 12px 14px;
-      display:flex;
-      align-items:flex-start;
-      gap: 10px;
-      color: var(--text);
-      margin-bottom: 16px;
-    }
-    .notice .icon{ margin-top: 2px; }
-    .notice small{ color: var(--muted); display:block; margin-top: 3px; }
+        select {
+            margin-top: 15px;
+            padding: 8px;
+            border-radius: 6px;
+            border: 1px solid #d1d5db;
+        }
 
-    .grid{
-      display:grid;
-      grid-template-columns: 1.4fr .9fr;
-      gap: 16px;
-    }
-    @media (max-width: 980px){
-      .grid{ grid-template-columns: 1fr; }
-      .brand{ min-width: auto; }
-    }
+        button {
+            margin-top: 20px;
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            background: #2563eb;
+            color: white;
+            font-weight: 600;
+            cursor: pointer;
+            font-size: 15px;
+        }
 
-    .card{
-      background: var(--card);
-      border: 1px solid var(--border);
-      border-radius: var(--radius);
-      box-shadow: var(--shadow);
-      padding: 16px;
-    }
+        button:hover {
+            background: #1d4ed8;
+        }
 
-    h1{
-      margin: 0 0 6px 0;
-      font-size: 22px;
-      letter-spacing: .2px;
-    }
-    .lead{ color: var(--muted); font-size: 13.5px; margin: 0 0 14px 0; }
+        footer {
+            text-align: center;
+            margin: 40px 0;
+            color: #6b7280;
+            font-size: 14px;
+        }
 
-    .row{
-      display:flex;
-      align-items:center;
-      gap: 10px;
-      flex-wrap: wrap;
-      margin-bottom: 12px;
-    }
-
-    .tabs{
-      display:flex;
-      gap: 10px;
-      background: #f1f5ff;
-      border: 1px solid #e6ebff;
-      padding: 6px;
-      border-radius: 999px;
-      width: fit-content;
-    }
-    .tab{
-      border: 0;
-      background: transparent;
-      padding: 8px 12px;
-      border-radius: 999px;
-      font-weight: 800;
-      cursor: pointer;
-      color: var(--muted);
-    }
-    .tab.active{
-      background: #ffffff;
-      color: var(--text);
-      box-shadow: 0 8px 20px rgba(2,6,23,.10);
-      border: 1px solid var(--border);
-    }
-
-    select, textarea, input[type="file"]{
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 10px 12px;
-      font-size: 14px;
-      background: #fff;
-      outline: none;
-    }
-    textarea{
-      width: 100%;
-      min-height: 150px;
-      resize: vertical;
-      line-height: 1.35;
-    }
-
-    .btn{
-      border: 0;
-      border-radius: 14px;
-      padding: 11px 14px;
-      font-weight: 900;
-      cursor: pointer;
-    }
-    .btn-primary{
-      background: linear-gradient(180deg, var(--primary-2), var(--primary));
-      color:#fff;
-      box-shadow: 0 16px 30px rgba(29,78,216,.22);
-    }
-    .btn-primary:hover{ filter: brightness(1.02); }
-    .btn-ghost{
-      background: #ffffff;
-      border: 1px solid var(--border);
-      color: var(--text);
-    }
-
-    .muted{ color: var(--muted); font-size: 12.5px; }
-
-    .results{
-      display:grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 16px;
-      margin-top: 16px;
-    }
-    @media (max-width: 980px){
-      .results{ grid-template-columns: 1fr; }
-    }
-
-    .pill{
-      display:inline-flex;
-      align-items:center;
-      gap: 8px;
-      padding: 6px 10px;
-      border-radius: 999px;
-      font-weight: 900;
-      font-size: 12px;
-      border: 1px solid var(--border);
-      background: #fff;
-    }
-    .pill.ok{ border-color: #bbf7d0; background: #f0fdf4; color: var(--ok); }
-    .pill.mid{ border-color: #fed7aa; background: #fff7ed; color: var(--warn); }
-    .pill.bad{ border-color: #fecaca; background: #fef2f2; color: var(--danger); }
-
-    .bar{
-      height: 10px;
-      background: #eef2ff;
-      border-radius: 999px;
-      overflow:hidden;
-      border: 1px solid #e6ebff;
-      margin-top: 10px;
-    }
-    .bar > div{
-      height:100%;
-      width:0%;
-      background: linear-gradient(90deg, var(--primary), #60a5fa);
-      transition: width .25s ease;
-    }
-
-    .list{
-      margin: 10px 0 0 0;
-      padding: 0;
-      list-style: none;
-      display:flex;
-      flex-direction: column;
-      gap: 8px;
-    }
-    .sig{
-      display:flex;
-      justify-content: space-between;
-      align-items:center;
-      gap: 10px;
-      padding: 10px 12px;
-      border: 1px solid var(--border);
-      border-radius: 14px;
-      background: #fff;
-    }
-    .sig code{
-      font-weight: 900;
-      color: var(--text);
-      background: #f8fafc;
-      padding: 3px 8px;
-      border-radius: 999px;
-      border: 1px solid var(--border);
-      font-size: 12px;
-    }
-    .sig .w{ font-weight: 900; color: var(--muted); }
-
-    .advice{
-      margin: 10px 0 0 0;
-      padding-left: 18px;
-      color: var(--text);
-    }
-    .advice li{ margin: 6px 0; }
-
-    .footer{
-      max-width: 1080px;
-      margin: 18px auto 36px;
-      padding: 0 18px;
-      color: var(--muted);
-      font-size: 12px;
-      display:flex;
-      justify-content: space-between;
-      gap: 12px;
-      flex-wrap: wrap;
-    }
-
-    .checkrow{
-      display:flex;
-      align-items:center;
-      gap: 8px;
-      margin-top: 10px;
-    }
-
-    .kbd{
-      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
-      font-size: 12px;
-      background:#f8fafc;
-      border:1px solid var(--border);
-      border-radius: 10px;
-      padding: 3px 8px;
-      color: var(--muted);
-    }
-  </style>
+        .disclaimer {
+            margin-top: 20px;
+            font-size: 13px;
+            color: #6b7280;
+        }
+    </style>
 </head>
-
 <body>
-  <div class="topbar">
-    <div class="topbar-inner">
-      <div class="brand">
-        <div class="logo">🛡️</div>
-        <div>
-          <div class="brand-title">AntiTruffa</div>
-          <div class="brand-sub">Verifica rapida di messaggi sospetti (phishing / truffe)</div>
-          <div class="brand-by">by Franco Ficara</div>
-        </div>
-      </div>
-      <div class="nav">
-        <a href="/" aria-current="page">Verifica</a>
+
+<header>
+    <h1>🛡 AntiTruffa by Franco Ficara</h1>
+    <nav>
+        <a href="/">Verifica</a>
         <a href="/stats">Statistiche</a>
-      </div>
-    </div>
-  </div>
+    </nav>
+</header>
 
-  <div class="wrap">
-    <div class="notice">
-      <div class="icon">⚠️</div>
-      <div>
-        <div><strong>Regola d’oro:</strong> non inserire mai OTP, password, dati carta o documenti.</div>
-        <small>Questo strumento dà una <em>valutazione probabilistica</em>, utile per prevenzione e didattica. Non è una prova legale.</small>
-      </div>
-    </div>
+<div class="container">
+    <h2>Hai ricevuto un messaggio sospetto?</h2>
+    <p>Incolla il testo qui sotto e ottieni una valutazione del rischio.</p>
 
-    <div class="grid">
-      <!-- LEFT: input -->
-      <div class="card">
-        <h1>Hai ricevuto un messaggio sospetto?</h1>
-        <p class="lead">Incolla il testo oppure carica uno screenshot. Poi premi <span class="kbd">Verifica</span>.</p>
-
-        <div class="row">
-          <div class="tabs" role="tablist" aria-label="Modalità">
-            <button class="tab active" id="tabText" type="button">Testo</button>
-            <button class="tab" id="tabImg" type="button">Screenshot</button>
-          </div>
-
-          <label class="muted" style="margin-left:auto;">Fonte:</label>
-          <select id="source">
+    <form id="analyzeForm">
+        <label>Fonte:</label><br>
+        <select name="source">
             <option value="sms">SMS</option>
-            <option value="whatsapp">WhatsApp</option>
             <option value="email">Email</option>
-            <option value="facebook">Facebook/Messenger</option>
-            <option value="other" selected>Altro</option>
-          </select>
-        </div>
+            <option value="whatsapp">WhatsApp</option>
+            <option value="other">Altro</option>
+        </select>
 
-        <div id="paneText">
-          <textarea id="text" maxlength="5000" placeholder="Incolla qui il messaggio..."></textarea>
-          <div class="row" style="margin-top:12px;">
-            <button class="btn btn-primary" id="btnCheckText" type="button">Verifica</button>
-            <button class="btn btn-ghost" id="btnClear" type="button">Pulisci</button>
-            <span class="muted" id="count">0/5000</span>
-          </div>
-        </div>
+        <br><br>
 
-        <div id="paneImg" style="display:none;">
-          <input id="img" type="file" accept="image/*" />
-          <div class="row" style="margin-top:12px;">
-            <button class="btn btn-primary" id="btnCheckImg" type="button">Analizza screenshot</button>
-          </div>
-          <div class="muted">Suggerimento: screenshot ben leggibile, senza tagli del testo.</div>
-        </div>
+        <textarea name="text" placeholder="Incolla qui il messaggio sospetto..."></textarea>
 
-        <div class="checkrow">
-          <input id="saveAnon" type="checkbox" checked />
-          <label for="saveAnon" class="muted">Salva solo indicatori anonimi per statistiche</label>
-        </div>
-      </div>
+        <br>
+        <button type="submit">Verifica</button>
+    </form>
 
-      <!-- RIGHT: status -->
-      <div class="card">
-        <div class="row" style="justify-content:space-between;">
-          <div class="pill ok" id="pill">Pronto</div>
-          <div class="muted"><span id="score">0</span>/100</div>
-        </div>
+    <div id="result" style="margin-top:30px;"></div>
 
-        <div class="bar" aria-label="punteggio rischio">
-          <div id="barFill"></div>
-        </div>
-
-        <div style="margin-top:14px;">
-          <div class="muted"><strong>Categoria stimata:</strong> <span id="category">—</span></div>
-          <div class="muted" style="margin-top:6px;"><strong>Domini rilevati:</strong> <span id="domains">—</span></div>
-        </div>
-
-        <div style="margin-top:14px;">
-          <div style="font-weight:900;">Segnali principali</div>
-          <ul class="list" id="signals"></ul>
-        </div>
-
-        <div style="margin-top:14px;">
-          <div style="font-weight:900;">Cosa fare adesso</div>
-          <ul class="advice" id="advice"></ul>
-        </div>
-
-        <div class="row" style="margin-top:14px;">
-          <button class="btn btn-primary" id="btnReport" type="button" disabled>Segnala (anonimo)</button>
-          <span class="muted" id="reportStatus"></span>
-        </div>
-      </div>
+    <div class="disclaimer">
+        ⚠ Valutazione probabilistica, non prova legale. Non inserire OTP, password o dati carta.
     </div>
-  </div>
+</div>
 
-  <div class="footer">
-    <div><strong>AntiTruffa</strong> — by Franco Ficara • Uso educativo • Nessun dato sensibile richiesto</div>
-    <div>Consiglio “old school”: se è urgente, è quasi sempre una truffa.</div>
-  </div>
+<footer>
+    © 2026 Franco Ficara – Progetto educativo contro le truffe digitali
+</footer>
 
 <script>
-  const tabText = document.getElementById('tabText');
-  const tabImg  = document.getElementById('tabImg');
-  const paneText = document.getElementById('paneText');
-  const paneImg  = document.getElementById('paneImg');
+document.getElementById("analyzeForm").addEventListener("submit", async function(e) {
+    e.preventDefault();
 
-  const txt = document.getElementById('text');
-  const count = document.getElementById('count');
-  const source = document.getElementById('source');
+    const text = this.text.value;
+    const source = this.source.value;
 
-  const pill = document.getElementById('pill');
-  const scoreEl = document.getElementById('score');
-  const barFill = document.getElementById('barFill');
-  const categoryEl = document.getElementById('category');
-  const domainsEl = document.getElementById('domains');
-  const signalsEl = document.getElementById('signals');
-  const adviceEl = document.getElementById('advice');
-
-  const btnCheckText = document.getElementById('btnCheckText');
-  const btnCheckImg  = document.getElementById('btnCheckImg');
-  const btnClear = document.getElementById('btnClear');
-
-  const saveAnon = document.getElementById('saveAnon');
-  const btnReport = document.getElementById('btnReport');
-  const reportStatus = document.getElementById('reportStatus');
-
-  const imgInput = document.getElementById('img');
-
-  let lastResult = null; // memorizza risposta API (per report)
-
-  function setTab(which){
-    if(which === 'text'){
-      tabText.classList.add('active');
-      tabImg.classList.remove('active');
-      paneText.style.display = '';
-      paneImg.style.display = 'none';
-    }else{
-      tabImg.classList.add('active');
-      tabText.classList.remove('active');
-      paneImg.style.display = '';
-      paneText.style.display = 'none';
-    }
-  }
-
-  tabText.addEventListener('click', ()=> setTab('text'));
-  tabImg.addEventListener('click',  ()=> setTab('img'));
-
-  txt.addEventListener('input', ()=>{
-    count.textContent = `${txt.value.length}/5000`;
-  });
-
-  btnClear.addEventListener('click', ()=>{
-    txt.value = '';
-    count.textContent = '0/5000';
-  });
-
-  function renderResult(r){
-    lastResult = r;
-
-    const score = Number(r.risk_score ?? 0);
-    scoreEl.textContent = score;
-    barFill.style.width = `${score}%`;
-
-    const lvl = (r.risk_level || 'basso').toLowerCase();
-    pill.classList.remove('ok','mid','bad');
-    if(lvl === 'alto'){ pill.classList.add('bad'); pill.textContent = 'Rischio ALTO'; }
-    else if(lvl === 'medio'){ pill.classList.add('mid'); pill.textContent = 'Rischio MEDIO'; }
-    else { pill.classList.add('ok'); pill.textContent = 'Rischio BASSO'; }
-
-    categoryEl.textContent = r.category || '—';
-
-    const doms = (r.domains || []);
-    domainsEl.textContent = doms.length ? doms.join(', ') : '—';
-
-    // segnali
-    signalsEl.innerHTML = '';
-    (r.signals || []).slice(0, 8).forEach(s=>{
-      const li = document.createElement('li');
-      li.className = 'sig';
-      li.innerHTML = `<code>${s.code || 'SIGNAL'}</code><span class="w">+${s.weight ?? 0}</span>`;
-      signalsEl.appendChild(li);
-    });
-    if(!(r.signals || []).length){
-      const li = document.createElement('li');
-      li.className = 'sig';
-      li.innerHTML = `<code>NESSUN SEGNALE</code><span class="w">+0</span>`;
-      signalsEl.appendChild(li);
-    }
-
-    // advice
-    adviceEl.innerHTML = '';
-    (r.advice || []).forEach(a=>{
-      const li = document.createElement('li');
-      li.textContent = a;
-      adviceEl.appendChild(li);
+    const response = await fetch("/api/analyze/text", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({ text, source })
     });
 
-    btnReport.disabled = !saveAnon.checked || !r.fingerprint;
-    reportStatus.textContent = '';
-  }
+    const data = await response.json();
 
-  async function postJSON(url, payload){
-    const res = await fetch(url, {
-      method: 'POST',
-      headers: {'Content-Type':'application/json'},
-      body: JSON.stringify(payload)
-    });
-    if(!res.ok){
-      const text = await res.text();
-      throw new Error(text || `Errore HTTP ${res.status}`);
-    }
-    return await res.json();
-  }
-
-  btnCheckText.addEventListener('click', async ()=>{
-    try{
-      btnCheckText.disabled = true;
-      btnCheckText.textContent = 'Analizzo...';
-
-      const r = await postJSON('/api/analyze/text', {
-        text: txt.value || '',
-        source: source.value
-      });
-
-      renderResult(r);
-    }catch(e){
-      alert('Errore: ' + (e.message || e));
-    }finally{
-      btnCheckText.disabled = false;
-      btnCheckText.textContent = 'Verifica';
-    }
-  });
-
-  btnCheckImg.addEventListener('click', async ()=>{
-    try{
-      const f = imgInput.files && imgInput.files[0];
-      if(!f){ alert('Carica prima uno screenshot.'); return; }
-
-      btnCheckImg.disabled = true;
-      btnCheckImg.textContent = 'Analizzo...';
-
-      const fd = new FormData();
-      fd.append('file', f);
-
-      const res = await fetch('/api/analyze/image', { method:'POST', body: fd });
-      if(!res.ok){
-        const text = await res.text();
-        throw new Error(text || `Errore HTTP ${res.status}`);
-      }
-      const r = await res.json();
-      renderResult(r);
-    }catch(e){
-      alert('Errore: ' + (e.message || e));
-    }finally{
-      btnCheckImg.disabled = false;
-      btnCheckImg.textContent = 'Analizza screenshot';
-    }
-  });
-
-  saveAnon.addEventListener('change', ()=>{
-    btnReport.disabled = !saveAnon.checked || !(lastResult && lastResult.fingerprint);
-  });
-
-  btnReport.addEventListener('click', async ()=>{
-    try{
-      if(!saveAnon.checked){ return; }
-      if(!lastResult){ return; }
-
-      btnReport.disabled = true;
-      reportStatus.textContent = 'Invio...';
-
-      const payload = {
-        type: (paneImg.style.display === 'none') ? 'text' : 'image',
-        source: source.value,
-        category: lastResult.category || null,
-        risk_score: lastResult.risk_score || 0,
-        risk_level: lastResult.risk_level || 'basso',
-        fingerprint: lastResult.fingerprint || '',
-        signals: lastResult.signals || [],
-        domains: lastResult.domains || [],
-        phones: lastResult.phones || []
-      };
-
-      const r = await postJSON('/api/report', payload);
-      reportStatus.textContent = r.dedup ? 'Già segnalato (dedup).' : 'Segnalato!';
-    }catch(e){
-      reportStatus.textContent = 'Errore invio.';
-    }finally{
-      btnReport.disabled = !saveAnon.checked || !(lastResult && lastResult.fingerprint);
-      setTimeout(()=>{ reportStatus.textContent = ''; }, 2500);
-    }
-  });
-
-  // stato iniziale
-  renderResult({risk_score:0, risk_level:'basso', signals:[], advice:[
-    "Se ti mette fretta, sospetta.",
-    "Non inserire dati sensibili.",
-    "Controlla solo da app/sito ufficiale."
-  ], category:'—', domains:[], fingerprint:''});
+    document.getElementById("result").innerHTML = `
+        <h3>Risultato:</h3>
+        <p><strong>Livello:</strong> ${data.risk_level.toUpperCase()}</p>
+        <p><strong>Punteggio:</strong> ${data.risk_score}/100</p>
+        <p><strong>Categoria:</strong> ${data.category}</p>
+    `;
+});
 </script>
+
 </body>
 </html>
