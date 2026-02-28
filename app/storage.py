@@ -2,7 +2,8 @@ from __future__ import annotations
 import os, json, time
 from typing import Any, Dict
 
-DATA_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "data")
+# Railway/cloud: /tmp è sempre scrivibile
+DATA_DIR = os.getenv("DATA_DIR", "/tmp")
 REPORTS_PATH = os.path.join(DATA_DIR, "reports.jsonl")
 
 def ensure_data_dir():
@@ -19,12 +20,12 @@ def load_reports(max_lines: int = 5000):
     ensure_data_dir()
     if not os.path.exists(REPORTS_PATH):
         return []
-    rows=[]
+    rows = []
     with open(REPORTS_PATH, "r", encoding="utf-8") as f:
         for i, line in enumerate(f):
             if i >= max_lines:
                 break
-            line=line.strip()
+            line = line.strip()
             if not line:
                 continue
             try:
