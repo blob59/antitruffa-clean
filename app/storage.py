@@ -2,7 +2,6 @@ from __future__ import annotations
 import os, json, time
 from typing import Any, Dict
 
-# Railway/cloud: /tmp è sempre scrivibile
 DATA_DIR = os.getenv("DATA_DIR", "/tmp")
 REPORTS_PATH = os.path.join(DATA_DIR, "reports.jsonl")
 
