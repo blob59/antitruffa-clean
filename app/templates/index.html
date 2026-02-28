@@ -3,31 +3,124 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>AntiTruffa</title>
+  <title>AntiTruffa — Franco Ficara</title>
   <style>
-    body { font-family: Arial, sans-serif; margin: 0; padding: 24px; }
-    .box { max-width: 900px; margin: 0 auto; }
-    .badge { display:inline-block; padding:6px 10px; border:1px solid #ccc; border-radius: 999px; }
-    .muted { color:#666; font-size: 14px; }
-    hr { margin: 18px 0; }
+    body { font-family: Arial, sans-serif; margin: 0; padding: 24px; background: #fff; color:#111; }
+    .box { max-width: 920px; margin: 0 auto; }
+    .top { display:flex; justify-content:space-between; align-items:flex-end; gap:12px; flex-wrap:wrap; }
+    h1 { margin: 0; }
+    .name { font-weight:700; font-size: 14px; color:#444; }
+    .badge { display:inline-block; padding:6px 10px; border:1px solid #ccc; border-radius: 999px; font-size: 13px;}
+    .muted { color:#666; font-size: 13px; }
+    hr { margin: 18px 0; border:0; border-top:1px solid #ddd; }
+
+    form { display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
+    input[type="text"]{
+      flex: 1;
+      min-width: 280px;
+      padding: 10px 12px;
+      border: 1px solid #bbb;
+      border-radius: 10px;
+      font-size: 15px;
+    }
+    button{
+      padding: 10px 14px;
+      border: 1px solid #111;
+      border-radius: 10px;
+      background:#111;
+      color:#fff;
+      font-size: 15px;
+      cursor: pointer;
+    }
+    button:hover{ opacity: .9; }
+
+    .card{
+      border:1px solid #ddd;
+      border-radius: 14px;
+      padding: 14px;
+      margin-top: 14px;
+      background:#fafafa;
+    }
+    .verdict{
+      font-weight: 800;
+      font-size: 18px;
+      margin: 0 0 6px 0;
+    }
+    .score{
+      font-weight: 700;
+      font-size: 14px;
+      color:#333;
+      margin: 0 0 10px 0;
+    }
+    ul { margin: 8px 0 0 18px; }
+    li { margin: 6px 0; }
+    .tip { margin-top: 10px; padding: 10px 12px; border-left: 4px solid #111; background:#fff; }
+    .small { font-size: 12px; color:#666; }
   </style>
 </head>
+
 <body>
   <div class="box">
-    <h1>AntiTruffa</h1>
-    <p class="badge">Pagina servita da Jinja2 ✅</p>
+
+    <div class="top">
+      <div>
+        <h1>AntiTruffa</h1>
+        <div class="name">di {{ name }}</div>
+      </div>
+      <div class="badge">Pagina servita da Jinja2 ✅</div>
+    </div>
 
     <hr />
 
-    <p><b>Se vedi questo timestamp cambiare, il deploy sta aggiornando davvero:</b></p>
-    <p class="muted">BUILD TIME (UTC): {{ build_time }}</p>
+    <p><b>Incolla qui un link sospetto:</b></p>
+
+    <form action="/check" method="post">
+      <input
+        type="text"
+        name="url"
+        placeholder="es: https://qualcosa-strana.com/login"
+        value="{{ url }}"
+        required
+      />
+      <button type="submit">Analizza</button>
+    </form>
+
+    {% if result %}
+      <div class="card">
+        <p class="verdict">Risultato: {{ result.verdict }}</p>
+        <p class="score">Punteggio rischio: {{ result.score }}/100</p>
+
+        <div>
+          <b>Perché:</b>
+          <ul>
+            {% for r in result.reasons %}
+              <li>{{ r }}</li>
+            {% endfor %}
+          </ul>
+        </div>
+
+        <div class="tip">
+          <b>Consiglio pratico:</b>
+          <div>
+            Se ti chiedono password/codici/IBAN, fermati. Vai tu sul sito ufficiale
+            digitando l’indirizzo a mano (non dal link).
+          </div>
+        </div>
+
+        <p class="small">
+          Nota: è un controllo “furbo ma semplice” (euristico), non una sentenza.
+          Per sicurezza assoluta servirebbero controlli aggiuntivi (DNS, blacklist, ecc.).
+        </p>
+      </div>
+    {% endif %}
 
     <hr />
 
-    <p>Qui poi ci mettiamo i contenuti veri (verifica truffe, immagini fake, ecc.).</p>
+    <p class="muted">
+      BUILD TIME (UTC): {{ build_time }}
+    </p>
 
-    <!-- FIRMA: se cambi questa riga e non cambia sul sito, NON è il template giusto o stai vedendo cache -->
-    <!-- FIRMA DEPLOY: v1 -->
+    <!-- FIRMA DEPLOY: v2 -->
   </div>
 </body>
 </html>
