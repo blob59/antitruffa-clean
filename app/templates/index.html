@@ -3,10 +3,10 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>AntiTruffa — Franco Ficara</title>
+  <title>AntiTruffa — {{ name }}</title>
   <style>
-    body { font-family: Arial, sans-serif; margin: 0; padding: 24px; background: #fff; color:#111; }
-    .box { max-width: 920px; margin: 0 auto; }
+    body { font-family: Arial, sans-serif; margin: 0; padding: 24px; background:#fff; color:#111; }
+    .box { max-width: 980px; margin: 0 auto; }
     .top { display:flex; justify-content:space-between; align-items:flex-end; gap:12px; flex-wrap:wrap; }
     h1 { margin: 0; }
     .name { font-weight:700; font-size: 14px; color:#444; }
@@ -14,48 +14,51 @@
     .muted { color:#666; font-size: 13px; }
     hr { margin: 18px 0; border:0; border-top:1px solid #ddd; }
 
-    form { display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
-    input[type="text"]{
-      flex: 1;
-      min-width: 280px;
+    .tabs { display:flex; gap:10px; flex-wrap:wrap; margin: 10px 0 16px 0; }
+    .tab {
+      padding: 8px 12px; border:1px solid #bbb; border-radius: 999px;
+      background:#fff; cursor:pointer; font-size: 14px;
+    }
+    .tab.active { border-color:#111; background:#111; color:#fff; }
+
+    form { display:flex; gap:10px; flex-wrap:wrap; align-items:flex-start; }
+    input[type="text"], textarea{
+      width: 100%;
       padding: 10px 12px;
       border: 1px solid #bbb;
-      border-radius: 10px;
+      border-radius: 12px;
       font-size: 15px;
+      box-sizing: border-box;
     }
+    textarea { min-height: 140px; resize: vertical; }
+
+    .row { display:grid; grid-template-columns: 1fr auto; gap:10px; width:100%; align-items:center; }
     button{
       padding: 10px 14px;
       border: 1px solid #111;
-      border-radius: 10px;
+      border-radius: 12px;
       background:#111;
       color:#fff;
       font-size: 15px;
       cursor: pointer;
+      height: 42px;
+      white-space: nowrap;
     }
-    button:hover{ opacity: .9; }
+    button:hover{ opacity: .92; }
 
     .card{
-      border:1px solid #ddd;
-      border-radius: 14px;
-      padding: 14px;
-      margin-top: 14px;
-      background:#fafafa;
+      border:1px solid #ddd; border-radius: 14px; padding: 14px;
+      margin-top: 14px; background:#fafafa;
     }
-    .verdict{
-      font-weight: 800;
-      font-size: 18px;
-      margin: 0 0 6px 0;
-    }
-    .score{
-      font-weight: 700;
-      font-size: 14px;
-      color:#333;
-      margin: 0 0 10px 0;
-    }
+    .verdict{ font-weight: 900; font-size: 18px; margin: 0 0 6px 0; }
+    .score{ font-weight: 700; font-size: 14px; color:#333; margin: 0 0 10px 0; }
     ul { margin: 8px 0 0 18px; }
     li { margin: 6px 0; }
     .tip { margin-top: 10px; padding: 10px 12px; border-left: 4px solid #111; background:#fff; }
-    .small { font-size: 12px; color:#666; }
+    .small { font-size: 12px; color:#666; margin-top: 10px; }
+    .hidden { display:none; }
+    .links { margin-top: 10px; }
+    code { background:#fff; border:1px solid #eee; padding:2px 6px; border-radius: 8px; }
   </style>
 </head>
 
@@ -72,21 +75,44 @@
 
     <hr />
 
-    <p><b>Incolla qui un link sospetto:</b></p>
+    <div class="tabs">
+      <button class="tab {% if active=='link' %}active{% endif %}" type="button" onclick="showTab('link')">Link</button>
+      <button class="tab {% if active=='text' %}active{% endif %}" type="button" onclick="showTab('text')">SMS / Messaggio</button>
+      <button class="tab {% if active=='email' %}active{% endif %}" type="button" onclick="showTab('email')">Email</button>
+    </div>
 
-    <form action="/check" method="post">
-      <input
-        type="text"
-        name="url"
-        placeholder="es: https://qualcosa-strana.com/login"
-        value="{{ url }}"
-        required
-      />
-      <button type="submit">Analizza</button>
-    </form>
+    <!-- TAB LINK -->
+    <div id="tab-link" class="{% if active!='link' %}hidden{% endif %}">
+      <p><b>Incolla qui un link sospetto:</b></p>
+      <form action="/check-link" method="post">
+        <div class="row">
+          <input type="text" name="url" placeholder="es: https://qualcosa-strana.com/login" value="{{ url_value }}" required />
+          <button type="submit">Analizza</button>
+        </div>
+      </form>
+    </div>
+
+    <!-- TAB SMS/TEXT -->
+    <div id="tab-text" class="{% if active!='text' %}hidden{% endif %}">
+      <p><b>Incolla qui un SMS / messaggio sospetto:</b></p>
+      <form action="/check-text" method="post">
+        <textarea name="message" placeholder="Incolla qui il testo (anche WhatsApp, Messenger, ecc.)" required>{{ text_value }}</textarea>
+        <button type="submit">Analizza</button>
+      </form>
+    </div>
+
+    <!-- TAB EMAIL -->
+    <div id="tab-email" class="{% if active!='email' %}hidden{% endif %}">
+      <p><b>Incolla qui una email sospetta:</b></p>
+      <form action="/check-email" method="post">
+        <textarea name="email_text" placeholder="Incolla qui l’email (anche solo il testo). Se hai 'From:' o 'Oggetto:' ancora meglio." required>{{ email_value }}</textarea>
+        <button type="submit">Analizza</button>
+      </form>
+    </div>
 
     {% if result %}
       <div class="card">
+        <p class="muted"><b>{{ result.title }}</b></p>
         <p class="verdict">Risultato: {{ result.verdict }}</p>
         <p class="score">Punteggio rischio: {{ result.score }}/100</p>
 
@@ -99,28 +125,55 @@
           </ul>
         </div>
 
+        {% if result.links %}
+          <div class="links">
+            <b>Link trovati nel testo:</b>
+            <ul>
+              {% for l in result.links %}
+                <li><code>{{ l }}</code></li>
+              {% endfor %}
+            </ul>
+          </div>
+        {% endif %}
+
         <div class="tip">
           <b>Consiglio pratico:</b>
           <div>
-            Se ti chiedono password/codici/IBAN, fermati. Vai tu sul sito ufficiale
-            digitando l’indirizzo a mano (non dal link).
+            Se ti chiedono password/codici/IBAN, STOP. Vai tu sul sito ufficiale digitando l’indirizzo a mano.
           </div>
         </div>
 
         <p class="small">
-          Nota: è un controllo “furbo ma semplice” (euristico), non una sentenza.
-          Per sicurezza assoluta servirebbero controlli aggiuntivi (DNS, blacklist, ecc.).
+          Nota: questo è un controllo “furbo ma semplice” (euristico), non una sentenza.
+          Possiamo aggiungere blacklist, DNS check, e regole più dure.
         </p>
       </div>
     {% endif %}
 
     <hr />
 
-    <p class="muted">
-      BUILD TIME (UTC): {{ build_time }}
-    </p>
+    <p class="muted">BUILD TIME (UTC): {{ build_time }}</p>
+    <!-- FIRMA DEPLOY: v3 -->
 
-    <!-- FIRMA DEPLOY: v2 -->
   </div>
+
+  <script>
+    function showTab(which){
+      // nascondi tutto
+      document.getElementById("tab-link").classList.add("hidden");
+      document.getElementById("tab-text").classList.add("hidden");
+      document.getElementById("tab-email").classList.add("hidden");
+
+      // attiva tab selezionata
+      document.getElementById("tab-" + which).classList.remove("hidden");
+
+      // aggiorna stile bottoni
+      const btns = document.querySelectorAll(".tab");
+      btns.forEach(b => b.classList.remove("active"));
+      if(which === "link") btns[0].classList.add("active");
+      if(which === "text") btns[1].classList.add("active");
+      if(which === "email") btns[2].classList.add("active");
+    }
+  </script>
 </body>
 </html>
