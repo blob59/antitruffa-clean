@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Request, Form
+from fastapi import FastAPI, Request, Form, Query
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
@@ -17,9 +17,9 @@ static_dir.mkdir(exist_ok=True)
 app.mount("/static", StaticFiles(directory=str(static_dir)), name="static")
 
 
-# -----------------------------
-# Utility: no-cache
-# -----------------------------
+# -----------------------------------
+# NO CACHE
+# -----------------------------------
 def nocache(response):
     response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
     response.headers["Pragma"] = "no-cache"
@@ -27,33 +27,17 @@ def nocache(response):
     return response
 
 
-# -----------------------------
-# URL check (euristiche)
-# -----------------------------
-SHORTENERS = {
-    "bit.ly", "tinyurl.com", "t.co", "goo.gl", "ow.ly", "is.gd", "cutt.ly",
-    "rebrand.ly", "buff.ly", "rb.gy", "shorturl.at"
-}
-
-SUSPICIOUS_KEYWORDS = [
-    "login", "verify", "verification", "account", "secure", "security", "update",
-    "password", "reset", "confirm", "billing", "invoice", "payment", "wallet",
-    "bank", "support", "helpdesk", "session", "locked", "unlock"
-]
-
-SUSPICIOUS_TLDS = {
-    "zip", "mov", "top", "xyz", "click", "fit", "quest", "country", "tk", "gq"
-}
-
-BRAND_BAIT = [
-    "paypal", "poste", "postepay", "amazon", "apple", "microsoft", "google",
-    "facebook", "instagram", "whatsapp", "inps", "agenziaentrate", "netflix",
-    "booking", "banca", "intesa", "unicredit", "tim", "vodafone"
-]
-
-IPV4_RE = re.compile(r"^\d{1,3}(\.\d{1,3}){3}$")
+# -----------------------------------
+# REGEX GLOBALI
+# -----------------------------------
+LINK_RE = re.compile(r"(https?://\S+|www\.\S+)", re.IGNORECASE)
+IP_RE = re.compile(r"\d{1,3}(\.\d{1,3}){3}")
+RANDOM_DOMAIN_RE = re.compile(r"[a-z0-9]{8,}\.(us|xyz|top|click|fit|quest|tk|gq)")
 
 
+# -----------------------------------
+# LINK ANALYSIS
+# -----------------------------------
 def score_url(url: str):
     raw = (url or "").strip()
     display_url = raw
@@ -64,255 +48,156 @@ def score_url(url: str):
     try:
         p = urlparse(raw)
     except Exception:
-        return 100, "Sembra phishing", ["URL non valido o non interpretabile."], display_url
+        return 100, "Sembra phishing", ["URL non valido."], display_url
 
     host = (p.hostname or "").lower()
-    path = (p.path or "").lower()
-    query = (p.query or "").lower()
-
     reasons = []
     score = 0
 
     if not host:
-        return 100, "Sembra phishing", ["Manca il dominio nell’URL."], display_url
+        return 100, "Sembra phishing", ["Dominio non valido."], display_url
 
     if p.scheme != "https":
         score += 15
-        reasons.append("Non usa HTTPS (http invece di https).")
+        reasons.append("Non usa HTTPS.")
 
-    if "@" in (p.netloc or ""):
-        score += 25
-        reasons.append("Contiene '@' nel dominio (mascheramento tipico).")
-
-    if IPV4_RE.match(host):
+    if IP_RE.fullmatch(host):
         score += 30
-        reasons.append("Il dominio è un indirizzo IP (molto sospetto).")
-
-    if host.startswith("xn--") or "xn--" in host:
-        score += 20
-        reasons.append("Dominio in punycode (possibile dominio “falso”).")
-
-    parts = host.split(".")
-    if len(parts) >= 4:
-        score += 15
-        reasons.append("Troppi sottodomini (spesso usati per imitare siti famosi).")
+        reasons.append("Dominio è un indirizzo IP.")
 
     if host.count("-") >= 2:
         score += 10
-        reasons.append("Molti trattini nel dominio (pattern da phishing).")
+        reasons.append("Molti trattini nel dominio.")
+
+    if RANDOM_DOMAIN_RE.search(host):
+        score += 35
+        reasons.append("Dominio con pattern casuale sospetto.")
 
     if len(raw) > 90:
         score += 10
-        reasons.append("URL molto lungo (può nascondere la destinazione).")
+        reasons.append("URL molto lungo.")
 
-    if host in SHORTENERS:
-        score += 20
-        reasons.append("È un link accorciato (non vedi dove porta davvero).")
-
-    text = f"{host}/{path}?{query}"
-    kw_hits = [k for k in SUSPICIOUS_KEYWORDS if k in text]
-    if kw_hits:
-        score += min(25, 5 * len(kw_hits))
-        reasons.append(f"Parole tipiche da phishing nel link: {', '.join(sorted(set(kw_hits)))}.")
-
-    tld = parts[-1] if parts else ""
-    if tld in SUSPICIOUS_TLDS:
-        score += 15
-        reasons.append(f"Estensione sospetta: .{tld}")
-
-    bait_hits = [b for b in BRAND_BAIT if b in host]
-    if bait_hits:
-        score += 15
-        reasons.append(
-            f"Nel dominio compare un nome “esca” ({', '.join(sorted(set(bait_hits)))}): occhio ai falsi."
-        )
-
-    if score >= 45:
+    if score >= 50:
         verdict = "Sembra phishing"
-    elif score >= 20:
+    elif score >= 25:
         verdict = "Sospetto"
     else:
-        verdict = "Probabilmente ok (ma verifica comunque)"
+        verdict = "Probabilmente ok"
 
     if not reasons:
-        reasons.append("Nessun segnale forte rilevato, ma controlla sempre dominio e mittente.")
+        reasons.append("Nessun segnale forte rilevato.")
 
     return score, verdict, reasons, display_url
 
 
-# -----------------------------
-# TESTO/SMS check (euristiche)
-# -----------------------------
-TEXT_RED_FLAGS = [
-    "urgente", "entro 24 ore", "entro 12 ore", "subito", "immediato", "adesso",
-    "account bloccato", "account sospeso", "verifica il tuo account", "conferma i tuoi dati",
-    "password", "codice otp", "codice di verifica", "pin", "iban", "carta", "cvv",
-    "pagamento non riuscito", "rimborso", "fattura", "sanzione", "multa", "agenzia delle entrate",
-    "inps", "poste", "postepay", "paypal", "amazon", "supporto", "assistenza"
-]
-
-THREAT_PHRASES = [
-    "verrà chiuso", "verrà sospeso", "ultimatum", "pena", "sanzione",
-    "azione legale", "se non", "evita il blocco", "ultimo avviso"
-]
-
-LINK_RE = re.compile(r"(https?://\S+|www\.\S+)", re.IGNORECASE)
-
-
+# -----------------------------------
+# SMS / TESTO ANALYSIS
+# -----------------------------------
 def score_text(message: str):
-    msg = (message or "").strip()
+    txt = (message or "").strip()
     reasons = []
     score = 0
 
-    if not msg:
-        return 0, "Inserisci un testo", ["Non hai incollato nulla."], []
+    if not txt:
+        return 0, "Inserisci testo", ["Non hai incollato nulla."], []
 
-    low = msg.lower()
+    low = txt.lower()
 
-    # Link dentro il testo
-    links = LINK_RE.findall(msg)
-    if links:
+    if LINK_RE.search(txt):
         score += 15
-        reasons.append(f"Contiene {len(links)} link nel messaggio (spesso usati per portarti fuori).")
+        reasons.append("Contiene link nel messaggio.")
 
-    hits = [k for k in TEXT_RED_FLAGS if k in low]
+    suspicious_words = [
+        "urgente", "entro 24 ore", "account bloccato",
+        "verifica", "password", "otp", "iban",
+        "clicca subito", "ultimo avviso"
+    ]
+
+    hits = [w for w in suspicious_words if w in low]
     if hits:
-        score += min(45, 5 * len(hits))
-        reasons.append(f"Parole/temi tipici da truffa: {', '.join(sorted(set(hits)))}.")
+        score += 5 * len(hits)
+        reasons.append("Parole tipiche da truffa rilevate.")
 
-    threats = [t for t in THREAT_PHRASES if t in low]
-    if threats:
-        score += min(25, 10 * len(threats))
-        reasons.append("Tono minaccioso/ultimatum per farti agire di fretta.")
-
-    # Se chiede dati sensibili
-    if any(x in low for x in ["password", "otp", "codice", "pin", "cvv", "iban"]):
-        score += 20
-        reasons.append("Richiesta possibile di dati sensibili (password/codici/IBAN).")
-
-    if score >= 60:
+    if score >= 50:
         verdict = "Molto sospetto"
-    elif score >= 30:
+    elif score >= 25:
         verdict = "Sospetto"
     else:
-        verdict = "Probabilmente ok (ma attenzione)"
+        verdict = "Probabilmente ok"
 
     if not reasons:
-        reasons.append("Nessun segnale forte rilevato, ma controlla sempre mittente e contesto.")
+        reasons.append("Nessun segnale forte rilevato.")
 
-    return min(score, 100), verdict, reasons, links
-
-
-# -----------------------------
-# EMAIL check (base)
-# -----------------------------
-EMAIL_HINTS = [
-    "from:", "da:", "subject:", "oggetto:", "reply-to", "rispondi a", "unsubscribe", "disiscriviti"
-]
+    return min(score, 100), verdict, reasons, LINK_RE.findall(txt)
 
 
+# -----------------------------------
+# EMAIL ANALYSIS SERIA
+# -----------------------------------
 def score_email(email_text: str):
     txt = (email_text or "").strip()
     reasons = []
     score = 0
 
     if not txt:
-        return 0, "Inserisci una email", ["Non hai incollato nulla."], []
+        return 0, "Inserisci email", ["Non hai incollato nulla."], []
 
     low = txt.lower()
 
-    # ----------------------------
-    # 1️⃣ Estrazione mittente
-    # ----------------------------
+    # Estrazione email mittente
     email_pattern = re.search(r"<([^>]+)>", txt)
-    sender_email = ""
-    if email_pattern:
-        sender_email = email_pattern.group(1).lower()
+    sender_email = email_pattern.group(1).lower() if email_pattern else ""
 
-    # ----------------------------
-    # 2️⃣ Brand nel nome ma dominio non ufficiale
-    # ----------------------------
-    brand_words = ["conad", "amazon", "paypal", "poste", "inps", "apple", "google"]
-    for brand in brand_words:
-        if brand in low:
-            if sender_email and brand not in sender_email:
-                score += 40
-                reasons.append(
-                    f"Il brand '{brand}' compare ma il dominio del mittente non è ufficiale."
-                )
+    # Brand spoofing
+    brands = ["conad", "amazon", "paypal", "poste", "inps"]
+    for brand in brands:
+        if brand in low and sender_email and brand not in sender_email:
+            score += 45
+            reasons.append(f"Il brand '{brand}' compare ma il dominio non è ufficiale.")
 
-    # ----------------------------
-    # 3️⃣ Dominio con stringhe casuali + estensioni sospette
-    # ----------------------------
-    random_domain_pattern = re.compile(
-        r"[a-z0-9]{8,}\.(us|xyz|top|click|fit|quest|tk|gq)"
-    )
-    if random_domain_pattern.search(low):
+    # Dominio casuale
+    if RANDOM_DOMAIN_RE.search(low):
         score += 35
-        reasons.append("Dominio mittente con stringa casuale (tipico spam/phishing).")
+        reasons.append("Dominio con pattern casuale sospetto.")
 
-    # ----------------------------
-    # 4️⃣ Presenza IP nel server
-    # ----------------------------
-    ip_pattern = re.compile(r"\d{1,3}(\.\d{1,3}){3}")
-    if ip_pattern.search(low):
+    # IP nel server
+    if IP_RE.search(low):
         score += 25
-        reasons.append(
-            "Presenza di indirizzo IP nel server di invio (anomala per aziende serie)."
-        )
+        reasons.append("Server di invio con IP sospetto.")
 
-    # ----------------------------
-    # 5️⃣ Oggetto promozionale aggressivo
-    # ----------------------------
-    promo_words = [
-        "gratis",
-        "gratuito",
-        "offerta",
-        "ultima occasione",
-        "riscatta",
-        "premio",
-        "vincitore",
-        "selezionato",
-    ]
-    promo_hits = [p for p in promo_words if p in low]
-    if promo_hits:
+    # Promo spam
+    promo = ["gratis", "gratuito", "offerta", "ultima occasione", "riscatta", "premio"]
+    if any(p in low for p in promo):
         score += 20
-        reasons.append("Oggetto promozionale aggressivo tipico da spam.")
+        reasons.append("Oggetto promozionale tipico da spam.")
 
-    # ----------------------------
-    # 6️⃣ Link presenti nella mail
-    # ----------------------------
+    # Link
     links = LINK_RE.findall(txt)
     if links:
         score += 20
-        reasons.append(
-            f"Contiene {len(links)} link: verifica sempre il dominio reale."
-        )
+        reasons.append("Contiene link da verificare.")
 
-    # ----------------------------
-    # 7️⃣ Richiesta dati sensibili
-    # ----------------------------
+    # Dati sensibili
     if any(x in low for x in ["password", "otp", "codice", "pin", "cvv", "iban"]):
         score += 25
-        reasons.append("Possibile richiesta di dati sensibili (mai darli via email).")
+        reasons.append("Possibile richiesta di dati sensibili.")
 
-    # ----------------------------
-    # Classificazione finale (più severa)
-    # ----------------------------
     if score >= 70:
         verdict = "Molto sospetta"
     elif score >= 40:
         verdict = "Sospetta"
     else:
-        verdict = "Probabilmente ok (ma verifica sempre)"
+        verdict = "Probabilmente ok"
 
     if not reasons:
-        reasons.append(
-            "Nessun segnale forte rilevato, ma controlla sempre mittente e dominio."
-        )
+        reasons.append("Nessun segnale forte rilevato.")
 
     return min(score, 100), verdict, reasons, links
 
+
+# -----------------------------------
+# ROUTES
+# -----------------------------------
 def base_context():
     return {
         "build_time": datetime.utcnow().isoformat(),
@@ -324,8 +209,6 @@ def base_context():
         "result": None,
     }
 
-
-from fastapi import Query
 
 @app.get("/", response_class=HTMLResponse)
 async def home(request: Request, tab: str = Query("link")):
@@ -348,8 +231,7 @@ async def check_link(request: Request, url: str = Form(...)):
         "result": {"title": "Analisi Link", "verdict": verdict, "score": score, "reasons": reasons}
     })
 
-    response = templates.TemplateResponse("index.html", ctx)
-    return nocache(response)
+    return nocache(templates.TemplateResponse("index.html", ctx))
 
 
 @app.post("/check-text", response_class=HTMLResponse)
@@ -361,17 +243,10 @@ async def check_text(request: Request, message: str = Form(...)):
         "request": request,
         "active": "text",
         "text_value": message,
-        "result": {
-            "title": "Analisi SMS / Messaggio",
-            "verdict": verdict,
-            "score": score,
-            "reasons": reasons,
-            "links": links
-        }
+        "result": {"title": "Analisi SMS / Messaggio", "verdict": verdict, "score": score, "reasons": reasons, "links": links}
     })
 
-    response = templates.TemplateResponse("index.html", ctx)
-    return nocache(response)
+    return nocache(templates.TemplateResponse("index.html", ctx))
 
 
 @app.post("/check-email", response_class=HTMLResponse)
@@ -383,17 +258,10 @@ async def check_email(request: Request, email_text: str = Form(...)):
         "request": request,
         "active": "email",
         "email_value": email_text,
-        "result": {
-            "title": "Analisi Email",
-            "verdict": verdict,
-            "score": score,
-            "reasons": reasons,
-            "links": links
-        }
+        "result": {"title": "Analisi Email", "verdict": verdict, "score": score, "reasons": reasons, "links": links}
     })
 
-    response = templates.TemplateResponse("index.html", ctx)
-    return nocache(response)
+    return nocache(templates.TemplateResponse("index.html", ctx))
 
 
 @app.get("/health")
