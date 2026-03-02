@@ -221,44 +221,55 @@ def score_email(email_text: str):
 
     low = txt.lower()
 
-    # Se sembra proprio una email (header)
-    if any(h in low for h in EMAIL_HINTS):
-        score += 5
-        reasons.append("Sembra contenere intestazioni email (ok per analisi).")
+    # 1️⃣ Dominio sospetto nel mittente (pattern casuale)
+    random_domain_pattern = re.compile(r"[a-z0-9]{8,}\.(us|xyz|top|click|fit|quest|tk|gq)")
+    if random_domain_pattern.search(low):
+        score += 40
+        reasons.append("Dominio mittente con stringa casuale (tipico spam/phishing).")
 
-    # Link presenti
+    # 2️⃣ Presenza di IP nel server
+    ip_pattern = re.compile(r"\d{1,3}(\.\d{1,3}){3}")
+    if ip_pattern.search(low):
+        score += 25
+        reasons.append("Presenza di indirizzo IP nel server di invio (anomala per aziende serie).")
+
+    # 3️⃣ Oggetto promozionale aggressivo
+    promo_words = ["gratis", "gratuito", "offerta", "ultima occasione", "riscatta", "premio"]
+    promo_hits = [p for p in promo_words if p in low]
+    if promo_hits:
+        score += 20
+        reasons.append("Oggetto promozionale aggressivo tipico da spam.")
+
+    # 4️⃣ Brand nel nome ma dominio diverso
+    brand_words = ["conad", "amazon", "paypal", "poste", "inps"]
+    for brand in brand_words:
+        if brand in low and f"@{brand}." not in low:
+            score += 25
+            reasons.append(f"Il brand '{brand}' compare ma il dominio non è ufficiale.")
+
+    # 5️⃣ Link presenti
     links = LINK_RE.findall(txt)
     if links:
         score += 20
-        reasons.append(f"Contiene {len(links)} link: controlla che puntino a domini ufficiali.")
+        reasons.append(f"Contiene {len(links)} link: verifica sempre il dominio reale.")
 
-    # Urgenza / minacce / dati
-    hits = [k for k in TEXT_RED_FLAGS if k in low]
-    if hits:
-        score += min(40, 4 * len(hits))
-        reasons.append("Ci sono parole/temi tipici da phishing (urgenza, account, pagamenti, codici).")
-
-    threats = [t for t in THREAT_PHRASES if t in low]
-    if threats:
-        score += min(25, 10 * len(threats))
-        reasons.append("Tono minaccioso/ultimatum: classico phishing.")
-
+    # 6️⃣ Richiesta dati sensibili
     if any(x in low for x in ["password", "otp", "codice", "pin", "cvv", "iban"]):
-        score += 20
-        reasons.append("Possibile richiesta di dati sensibili (mai darli via email).")
+        score += 25
+        reasons.append("Possibile richiesta di dati sensibili.")
 
+    # Classificazione più severa
     if score >= 60:
         verdict = "Molto sospetta"
-    elif score >= 30:
+    elif score >= 35:
         verdict = "Sospetta"
     else:
-        verdict = "Probabilmente ok (ma attenzione)"
+        verdict = "Probabilmente ok (ma verifica sempre)"
 
     if not reasons:
-        reasons.append("Nessun segnale forte rilevato, ma verifica sempre mittente e link.")
+        reasons.append("Nessun segnale forte rilevato, ma controlla sempre mittente e dominio.")
 
     return min(score, 100), verdict, reasons, links
-
 
 def base_context():
     return {
