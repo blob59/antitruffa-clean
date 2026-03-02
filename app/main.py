@@ -221,53 +221,95 @@ def score_email(email_text: str):
 
     low = txt.lower()
 
-    # 1️⃣ Dominio sospetto nel mittente (pattern casuale)
-    random_domain_pattern = re.compile(r"[a-z0-9]{8,}\.(us|xyz|top|click|fit|quest|tk|gq)")
+    # ----------------------------
+    # 1️⃣ Estrazione mittente
+    # ----------------------------
+    email_pattern = re.search(r"<([^>]+)>", txt)
+    sender_email = ""
+    if email_pattern:
+        sender_email = email_pattern.group(1).lower()
+
+    # ----------------------------
+    # 2️⃣ Brand nel nome ma dominio non ufficiale
+    # ----------------------------
+    brand_words = ["conad", "amazon", "paypal", "poste", "inps", "apple", "google"]
+    for brand in brand_words:
+        if brand in low:
+            if sender_email and brand not in sender_email:
+                score += 40
+                reasons.append(
+                    f"Il brand '{brand}' compare ma il dominio del mittente non è ufficiale."
+                )
+
+    # ----------------------------
+    # 3️⃣ Dominio con stringhe casuali + estensioni sospette
+    # ----------------------------
+    random_domain_pattern = re.compile(
+        r"[a-z0-9]{8,}\.(us|xyz|top|click|fit|quest|tk|gq)"
+    )
     if random_domain_pattern.search(low):
-        score += 40
+        score += 35
         reasons.append("Dominio mittente con stringa casuale (tipico spam/phishing).")
 
-    # 2️⃣ Presenza di IP nel server
+    # ----------------------------
+    # 4️⃣ Presenza IP nel server
+    # ----------------------------
     ip_pattern = re.compile(r"\d{1,3}(\.\d{1,3}){3}")
     if ip_pattern.search(low):
         score += 25
-        reasons.append("Presenza di indirizzo IP nel server di invio (anomala per aziende serie).")
+        reasons.append(
+            "Presenza di indirizzo IP nel server di invio (anomala per aziende serie)."
+        )
 
-    # 3️⃣ Oggetto promozionale aggressivo
-    promo_words = ["gratis", "gratuito", "offerta", "ultima occasione", "riscatta", "premio"]
+    # ----------------------------
+    # 5️⃣ Oggetto promozionale aggressivo
+    # ----------------------------
+    promo_words = [
+        "gratis",
+        "gratuito",
+        "offerta",
+        "ultima occasione",
+        "riscatta",
+        "premio",
+        "vincitore",
+        "selezionato",
+    ]
     promo_hits = [p for p in promo_words if p in low]
     if promo_hits:
         score += 20
         reasons.append("Oggetto promozionale aggressivo tipico da spam.")
 
-    # 4️⃣ Brand nel nome ma dominio diverso
-    brand_words = ["conad", "amazon", "paypal", "poste", "inps"]
-    for brand in brand_words:
-        if brand in low and f"@{brand}." not in low:
-            score += 25
-            reasons.append(f"Il brand '{brand}' compare ma il dominio non è ufficiale.")
-
-    # 5️⃣ Link presenti
+    # ----------------------------
+    # 6️⃣ Link presenti nella mail
+    # ----------------------------
     links = LINK_RE.findall(txt)
     if links:
         score += 20
-        reasons.append(f"Contiene {len(links)} link: verifica sempre il dominio reale.")
+        reasons.append(
+            f"Contiene {len(links)} link: verifica sempre il dominio reale."
+        )
 
-    # 6️⃣ Richiesta dati sensibili
+    # ----------------------------
+    # 7️⃣ Richiesta dati sensibili
+    # ----------------------------
     if any(x in low for x in ["password", "otp", "codice", "pin", "cvv", "iban"]):
         score += 25
-        reasons.append("Possibile richiesta di dati sensibili.")
+        reasons.append("Possibile richiesta di dati sensibili (mai darli via email).")
 
-    # Classificazione più severa
-    if score >= 60:
+    # ----------------------------
+    # Classificazione finale (più severa)
+    # ----------------------------
+    if score >= 70:
         verdict = "Molto sospetta"
-    elif score >= 35:
+    elif score >= 40:
         verdict = "Sospetta"
     else:
         verdict = "Probabilmente ok (ma verifica sempre)"
 
     if not reasons:
-        reasons.append("Nessun segnale forte rilevato, ma controlla sempre mittente e dominio.")
+        reasons.append(
+            "Nessun segnale forte rilevato, ma controlla sempre mittente e dominio."
+        )
 
     return min(score, 100), verdict, reasons, links
 
