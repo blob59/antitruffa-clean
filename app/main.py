@@ -272,10 +272,13 @@ def base_context():
     }
 
 
+from fastapi import Query
+
 @app.get("/", response_class=HTMLResponse)
-async def home(request: Request):
+async def home(request: Request, tab: str = Query("link")):
     ctx = base_context()
     ctx["request"] = request
+    ctx["active"] = tab if tab in ("link", "text", "email") else "link"
     response = templates.TemplateResponse("index.html", ctx)
     return nocache(response)
 
