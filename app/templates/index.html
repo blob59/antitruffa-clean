@@ -180,8 +180,50 @@
       padding:26px;
       display:flex;
       flex-direction:column;
-      justify-content:space-between;
       gap:16px;
+      justify-content:flex-start;
+    }
+
+    .profile-box{
+      display:flex;
+      align-items:center;
+      gap:14px;
+      padding:14px;
+      border:1px solid var(--line);
+      background:var(--surface-soft);
+      border-radius:16px;
+    }
+
+    .profile-photo{
+      width:84px;
+      height:84px;
+      max-width:84px;
+      min-width:84px;
+      object-fit:cover;
+      object-position:center;
+      border-radius:50%;
+      border:3px solid #fff;
+      box-shadow:0 6px 18px rgba(15,23,42,.12);
+      flex-shrink:0;
+      display:block;
+    }
+
+    .profile-meta{
+      display:flex;
+      flex-direction:column;
+      gap:4px;
+    }
+
+    .profile-name{
+      font-size:16px;
+      font-weight:800;
+      color:var(--text);
+    }
+
+    .profile-role{
+      font-size:13px;
+      color:var(--muted);
+      font-weight:600;
     }
 
     .hero-side h3{
@@ -526,6 +568,10 @@
       .tool-head h3{
         font-size:24px;
       }
+
+      .profile-box{
+        align-items:flex-start;
+      }
     }
   </style>
 </head>
@@ -571,12 +617,13 @@
 
         <div class="panel hero-side">
           <div class="profile-box">
-<img src="/static/franco.jpg" alt="Franco Ficara" class="profile-photo">
-  <div class="profile-meta">
-    <div class="profile-name">Franco Ficara</div>
-    <div class="profile-role">Ideatore del progetto AntiTruffa</div>
-  </div>
-</div>
+            <img src="/static/franco.jpg" alt="Franco Ficara" class="profile-photo">
+            <div class="profile-meta">
+              <div class="profile-name">Franco Ficara</div>
+              <div class="profile-role">Ideatore del progetto AntiTruffa</div>
+            </div>
+          </div>
+
           <div>
             <h3>Prima regola: non avere fretta.</h3>
             <p>
