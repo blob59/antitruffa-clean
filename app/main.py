@@ -141,6 +141,74 @@ def extract_phones(text: str) -> list[str]:
             cleaned.append(p)
     return cleaned
 
+def score_suspicious_domains(domains: list[str]) -> tuple[int, list[str]]:
+    score = 0
+    reasons = []
+
+    official_domains = {
+        "paypal": ["paypal.com"],
+        "poste": ["poste.it", "posteitaliane.it"],
+        "inps": ["inps.it"],
+        "spid": ["spid.gov.it", "spid.it"],
+        "agenziaentrate": ["agenziaentrate.gov.it", "agenziaentrate.it"],
+        "intesa": ["intesasanpaolo.com", "intesasanpaolo.it"],
+        "unicredit": ["unicredit.it", "unicreditgroup.eu"],
+        "amazon": ["amazon.it", "amazon.com"],
+        "gls": ["gls-group.com", "gls-italy.com"],
+        "sda": ["sda.it"],
+        "bartolini": ["brt.it", "bartolini.it"],
+        "dhl": ["dhl.com", "dhl.it"],
+    }
+
+    suspicious_words = [
+        "login", "verify", "verifica", "secure", "sicurezza", "account",
+        "update", "support", "assistenza", "banca", "poste", "spid",
+        "inps", "paypal", "otp", "password", "sblocco", "conferma",
+        "conto", "wallet", "tracking", "pacco", "delivery", "alert"
+    ]
+
+    suspicious_tlds = [".xyz", ".top", ".click", ".shop", ".live", ".info", ".site"]
+
+    for domain in domains:
+        d = domain.lower().strip()
+
+        # TLD strani o molto usati nei link truffa
+        if any(d.endswith(tld) for tld in suspicious_tlds):
+            score += 10
+            reasons.append("Dominio con estensione poco affidabile o insolita.")
+            continue
+
+        # Troppi trattini = odore di sito finto
+        hyphen_count = d.count("-")
+        if hyphen_count >= 2:
+            score += 10
+            reasons.append("Dominio con molti trattini, spesso usato per imitare siti ufficiali.")
+
+        # Parole tipiche da phishing nel dominio
+        matched_words = [w for w in suspicious_words if w in d]
+        if matched_words:
+            score += 12
+            reasons.append("Il dominio contiene parole tipiche dei siti di phishing.")
+
+        # Se usa un marchio noto ma NON è un dominio ufficiale
+        for brand, trusted_list in official_domains.items():
+            if brand in d and not any(d == t or d.endswith("." + t) for t in trusted_list):
+                score += 22
+                reasons.append(f"Il dominio cita '{brand}' ma non sembra ufficiale.")
+                break
+
+        # .net + parole bancarie/di accesso = molto sospetto
+        if d.endswith(".net") and any(w in d for w in ["banca", "login", "verifica", "account", "sicurezza"]):
+            score += 12
+            reasons.append("Dominio .net con parole da accesso o banca: schema tipico da phishing.")
+
+        # Dominio troppo lungo e pieno di parole sensibili
+        if len(d) > 28 and len(matched_words) >= 2:
+            score += 8
+            reasons.append("Dominio lungo e artificiale, costruito per sembrare credibile.")
+
+    return score, list(dict.fromkeys(reasons))
+
 
 def has_ip_url(urls: list[str]) -> bool:
     ip_pattern = r"(https?://)?(?:\d{1,3}\.){3}\d{1,3}"
