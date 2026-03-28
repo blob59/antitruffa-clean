@@ -386,7 +386,7 @@ def analyze_text(text: str) -> dict:
 
     if any(url.lower().startswith("http://") for url in urls):
         score += 10
-        signals.append("Link non protetto in HTTP invece di HTTPS.")
+        signals.append("Il link non è protetto: usa HTTP invece di HTTPS.")
 
     if has_ip_url(urls):
         score += 20
