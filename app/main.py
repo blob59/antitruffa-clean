@@ -188,7 +188,7 @@ def score_suspicious_domains(domains: list[str]) -> tuple[int, list[str]]:
         matched_words = [w for w in suspicious_words if w in d]
         if matched_words:
             score += 12
-            reasons.append("Il dominio contiene parole tipiche dei siti di phishing.")
+            reasons.append("Il nome del sito contiene parole usate spesso per ingannare, come login, verifica o sicurezza.")
 
         # Se usa un marchio noto ma NON è un dominio ufficiale
         for brand, trusted_list in official_domains.items():
