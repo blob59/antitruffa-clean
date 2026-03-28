@@ -194,7 +194,7 @@ def score_suspicious_domains(domains: list[str]) -> tuple[int, list[str]]:
         for brand, trusted_list in official_domains.items():
             if brand in d and not any(d == t or d.endswith("." + t) for t in trusted_list):
                 score += 22
-                reasons.append(f"Il dominio cita '{brand}' ma non sembra ufficiale.")
+                reasons.append(f"Il sito cita '{brand}' ma non sembra essere quello ufficiale.")
                 break
 
         # .net + parole bancarie/di accesso = molto sospetto
