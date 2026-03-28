@@ -338,7 +338,8 @@ def analyze_text(text: str) -> dict:
 
     urgency_keywords = [
         "urgente", "subito", "immediato", "scade oggi", "entro oggi",
-        "ultimo avviso", "verifica ora", "agisci subito", "bloccato"
+        "ultimo avviso", "verifica ora", "agisci subito", "bloccato",
+        "sospeso", "conto sospeso", "allerta", "attenzione"
     ]
     data_keywords = [
         "password", "otp", "iban", "cvv", "carta", "codice", "pin",
@@ -383,6 +384,10 @@ def analyze_text(text: str) -> dict:
         score += 8
         signals.append("Sono presenti numeri telefonici da contattare.")
 
+    if any(url.lower().startswith("http://") for url in urls):
+        score += 10
+        signals.append("Link non protetto in HTTP invece di HTTPS.")
+
     if has_ip_url(urls):
         score += 20
         signals.append("Link con indirizzo IP invece di un dominio normale.")
@@ -398,6 +403,11 @@ def analyze_text(text: str) -> dict:
             score += 10
             signals.append("Dominio con estensione poco affidabile o insolita.")
             break
+
+    # Nuovo blocco: analisi più severa dei domini phishing-like
+    domain_score, domain_reasons = score_suspicious_domains(domains)
+    score += domain_score
+    signals.extend(domain_reasons)
 
     if found_platform and found_data:
         score += 10
