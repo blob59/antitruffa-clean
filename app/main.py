@@ -4,7 +4,6 @@ import re
 import sqlite3
 import hashlib
 import urllib.request
-import urllib.error
 from datetime import datetime, timedelta
 from typing import Optional
 
@@ -107,8 +106,9 @@ def extract_urls(text: str) -> list[str]:
     cleaned = []
     for url in found:
         url = url.strip(".,;:!?()[]{}<>\"'")
-        cleaned.append(url)
-    return list(dict.fromkeys(cleaned))
+        if url not in cleaned:
+            cleaned.append(url)
+    return cleaned
 
 
 def extract_domains(text: str) -> list[str]:
@@ -120,16 +120,15 @@ def extract_domains(text: str) -> list[str]:
         u = re.sub(r"^https?://", "", u)
         u = re.sub(r"^www\.", "", u)
         domain = u.split("/")[0].split("?")[0].strip()
-        if domain:
+        if domain and domain not in domains:
             domains.append(domain)
 
-    # Cerca anche domini scritti senza http
     extra = re.findall(r"\b(?:[a-z0-9-]+\.)+[a-z]{2,}\b", text.lower())
     for d in extra:
         if d not in domains:
             domains.append(d)
 
-    return list(dict.fromkeys(domains))
+    return domains
 
 
 def extract_phones(text: str) -> list[str]:
@@ -140,6 +139,7 @@ def extract_phones(text: str) -> list[str]:
         if p not in cleaned:
             cleaned.append(p)
     return cleaned
+
 
 def score_suspicious_domains(domains: list[str]) -> tuple[int, list[str]]:
     score = 0
@@ -172,37 +172,31 @@ def score_suspicious_domains(domains: list[str]) -> tuple[int, list[str]]:
     for domain in domains:
         d = domain.lower().strip()
 
-        # TLD strani o molto usati nei link truffa
         if any(d.endswith(tld) for tld in suspicious_tlds):
             score += 10
             reasons.append("Dominio con estensione poco affidabile o insolita.")
             continue
 
-        # Troppi trattini = odore di sito finto
         hyphen_count = d.count("-")
         if hyphen_count >= 2:
             score += 10
             reasons.append("Dominio con molti trattini, spesso usato per imitare siti ufficiali.")
 
-        # Parole tipiche da phishing nel dominio
         matched_words = [w for w in suspicious_words if w in d]
         if matched_words:
             score += 12
             reasons.append("Il nome del sito contiene parole usate spesso per ingannare, come login, verifica o sicurezza.")
 
-        # Se usa un marchio noto ma NON è un dominio ufficiale
         for brand, trusted_list in official_domains.items():
             if brand in d and not any(d == t or d.endswith("." + t) for t in trusted_list):
                 score += 22
                 reasons.append(f"Il sito cita '{brand}' ma non sembra essere quello ufficiale.")
                 break
 
-        # .net + parole bancarie/di accesso = molto sospetto
         if d.endswith(".net") and any(w in d for w in ["banca", "login", "verifica", "account", "sicurezza"]):
             score += 12
             reasons.append("Dominio .net con parole da accesso o banca: schema tipico da phishing.")
 
-        # Dominio troppo lungo e pieno di parole sensibili
         if len(d) > 28 and len(matched_words) >= 2:
             score += 8
             reasons.append("Dominio lungo e artificiale, costruito per sembrare credibile.")
@@ -299,7 +293,6 @@ def safe_browsing_check(urls: list[str]) -> list[str]:
                     bad_urls.append(url)
 
             return bad_urls
-
     except Exception:
         return []
 
@@ -335,49 +328,56 @@ def analyze_text(text: str) -> dict:
     score = 0
     signals = []
     advice = []
+
     sanzione_keywords = [
-    "sanzione", "multa", "pagamento", "maggiorazioni",
-    "ufficio sanzioni", "procedure previste", "regolarizzare"
-]
+        "sanzione", "multa", "pagamento", "maggiorazioni",
+        "ufficio sanzioni", "procedure previste", "regolarizzare"
+    ]
 
-dettagli_reali_keywords = [
-    "verbale", "numero verbale", "targa", "importo",
-    "euro", "€", "data infrazione", "ente", "comune",
-    "polizia locale"
-]
+    dettagli_reali_keywords = [
+        "verbale", "numero verbale", "targa", "importo",
+        "euro", "€", "data infrazione", "ente", "comune",
+        "polizia locale"
+    ]
 
-firme_generiche = [
-    "ufficio sanzioni", "ufficio amministrativo",
-    "servizio clienti", "ente competente"
-]
+    firme_generiche = [
+        "ufficio sanzioni", "ufficio amministrativo",
+        "servizio clienti", "ente competente"
+    ]
 
-tono_pressante = [
-    "entro i termini previsti",
-    "nel più breve tempo possibile",
-    "evitare eventuali maggiorazioni",
-    "potranno essere avviate le procedure"
-]
+    tono_pressante = [
+        "entro i termini previsti",
+        "nel più breve tempo possibile",
+        "evitare eventuali maggiorazioni",
+        "potranno essere avviate le procedure"
+    ]
+
     urgency_keywords = [
         "urgente", "subito", "immediato", "scade oggi", "entro oggi",
         "ultimo avviso", "verifica ora", "agisci subito", "bloccato",
         "sospeso", "conto sospeso", "allerta", "attenzione"
     ]
+
     data_keywords = [
         "password", "otp", "iban", "cvv", "carta", "codice", "pin",
         "documento", "credenziali", "spid"
     ]
+
     lure_keywords = [
         "rimborso", "bonus", "premio", "vinto", "regalo", "offerta",
         "pacco", "consegna", "dogana", "investimento", "guadagno"
     ]
+
     platform_keywords = [
         "whatsapp", "telegram", "sms", "email", "paypal", "poste",
         "banca", "inps", "agenzia entrate"
     ]
+
     shorteners = [
         "bit.ly", "tinyurl.com", "t.co", "goo.gl", "ow.ly",
         "is.gd", "buff.ly", "cutt.ly", "rebrand.ly"
     ]
+
     suspicious_tlds = [".xyz", ".top", ".click", ".shop", ".live", ".info", ".site"]
 
     found_urgency = [k for k in urgency_keywords if k in lower_text]
@@ -424,23 +424,23 @@ tono_pressante = [
             score += 10
             signals.append("Dominio con estensione poco affidabile o insolita.")
             break
-has_link = len(urls) > 0
 
-has_sanzione_words = sum(1 for word in sanzione_keywords if word in text.lower()) >= 2
-has_real_details = sum(1 for word in dettagli_reali_keywords if word in text.lower()) >= 2
+    has_link = len(urls) > 0
+    has_sanzione_words = sum(1 for word in sanzione_keywords if word in lower_text) >= 2
+    has_real_details = sum(1 for word in dettagli_reali_keywords if word in lower_text) >= 2
 
-if has_link and has_sanzione_words and not has_real_details:
-    score += 35
-    signals.append("Messaggio con richiesta di pagamento o sanzione, link incluso e pochi dettagli verificabili.")
+    if has_link and has_sanzione_words and not has_real_details:
+        score += 35
+        signals.append("Messaggio con richiesta di pagamento o sanzione, link incluso e pochi dettagli verificabili.")
 
-if any(firma in text.lower() for firma in firme_generiche):
-    score += 10
-    signals.append("Firma generica senza ente chiaramente identificabile.")
+    if any(firma in lower_text for firma in firme_generiche):
+        score += 10
+        signals.append("Firma generica senza ente chiaramente identificabile.")
 
-if any(frase in text.lower() for frase in tono_pressante):
-    score += 15
-    signals.append("Tono pressante o minaccioso tipico dei messaggi truffaldini.")
-    # Nuovo blocco: analisi più severa dei domini phishing-like
+    if any(frase in lower_text for frase in tono_pressante):
+        score += 15
+        signals.append("Tono pressante o minaccioso tipico dei messaggi truffaldini.")
+
     domain_score, domain_reasons = score_suspicious_domains(domains)
     score += domain_score
     signals.extend(domain_reasons)
@@ -466,8 +466,10 @@ if any(frase in text.lower() for frase in tono_pressante):
     advice.append("Non fornire password, OTP, IBAN, dati carta o documenti.")
     advice.append("Verifica sempre dal sito ufficiale scritto a mano nel browser.")
     advice.append("Se il messaggio riguarda banca, corriere o ente pubblico, contatta solo i canali ufficiali.")
+
     if bad_urls:
         advice.append("Questo contenuto merita attenzione seria: uno o più link risultano potenzialmente pericolosi.")
+
     if score >= 70:
         advice.append("Probabile truffa: meglio bloccare, segnalare e cancellare.")
     elif score >= 40:
@@ -578,6 +580,7 @@ def get_stats_data() -> dict:
 @app.get("/", response_class=HTMLResponse)
 def home(request: Request):
     index_file = os.path.join(TEMPLATES_DIR, "index.html")
+
     if os.path.exists(index_file):
         return templates.TemplateResponse("index.html", {"request": request})
 
