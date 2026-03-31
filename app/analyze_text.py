@@ -26,56 +26,7 @@ def analyze_text(text: str) -> dict:
     signals = []
     advice = []
 
-    sanzione_keywords = [
-        "sanzione", "multa", "pagamento", "maggiorazioni",
-        "ufficio sanzioni", "procedure previste", "regolarizzare"
-    ]
-
-    dettagli_reali_keywords = [
-        "verbale", "numero verbale", "targa", "importo",
-        "euro", "€", "data infrazione", "ente", "comune",
-        "polizia locale"
-    ]
-
-    firme_generiche = [
-        "ufficio sanzioni", "ufficio amministrativo",
-        "servizio clienti", "ente competente"
-    ]
-
-    tono_pressante = [
-        "entro i termini previsti",
-        "nel più breve tempo possibile",
-        "evitare eventuali maggiorazioni",
-        "potranno essere avviate le procedure"
-    ]
-
-    urgency_keywords = [
-        "urgente", "subito", "immediato", "scade oggi", "entro oggi",
-        "ultimo avviso", "verifica ora", "agisci subito", "bloccato",
-        "sospeso", "conto sospeso", "allerta", "attenzione"
-    ]
-
-    data_keywords = [
-        "password", "otp", "iban", "cvv", "carta", "codice", "pin",
-        "documento", "credenziali", "spid"
-    ]
-
-    lure_keywords = [
-        "rimborso", "bonus", "premio", "vinto", "regalo", "offerta",
-        "pacco", "consegna", "dogana", "investimento", "guadagno"
-    ]
-
-    platform_keywords = [
-        "whatsapp", "telegram", "sms", "email", "paypal", "poste",
-        "banca", "inps", "agenzia entrate"
-    ]
-
-    shorteners = [
-        "bit.ly", "tinyurl.com", "t.co", "goo.gl", "ow.ly",
-        "is.gd", "buff.ly", "cutt.ly", "rebrand.ly"
-    ]
-
-    suspicious_tlds = [".xyz", ".top", ".click", ".shop", ".live", ".info", ".site"]
+  
 
     found_urgency = [k for k in urgency_keywords if k in lower_text]
     found_data = [k for k in data_keywords if k in lower_text]
