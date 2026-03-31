@@ -335,7 +335,28 @@ def analyze_text(text: str) -> dict:
     score = 0
     signals = []
     advice = []
+    sanzione_keywords = [
+    "sanzione", "multa", "pagamento", "maggiorazioni",
+    "ufficio sanzioni", "procedure previste", "regolarizzare"
+]
 
+dettagli_reali_keywords = [
+    "verbale", "numero verbale", "targa", "importo",
+    "euro", "€", "data infrazione", "ente", "comune",
+    "polizia locale"
+]
+
+firme_generiche = [
+    "ufficio sanzioni", "ufficio amministrativo",
+    "servizio clienti", "ente competente"
+]
+
+tono_pressante = [
+    "entro i termini previsti",
+    "nel più breve tempo possibile",
+    "evitare eventuali maggiorazioni",
+    "potranno essere avviate le procedure"
+]
     urgency_keywords = [
         "urgente", "subito", "immediato", "scade oggi", "entro oggi",
         "ultimo avviso", "verifica ora", "agisci subito", "bloccato",
@@ -403,7 +424,22 @@ def analyze_text(text: str) -> dict:
             score += 10
             signals.append("Dominio con estensione poco affidabile o insolita.")
             break
+has_link = len(urls) > 0
 
+has_sanzione_words = sum(1 for word in sanzione_keywords if word in text.lower()) >= 2
+has_real_details = sum(1 for word in dettagli_reali_keywords if word in text.lower()) >= 2
+
+if has_link and has_sanzione_words and not has_real_details:
+    score += 35
+    signals.append("Messaggio con richiesta di pagamento o sanzione, link incluso e pochi dettagli verificabili.")
+
+if any(firma in text.lower() for firma in firme_generiche):
+    score += 10
+    signals.append("Firma generica senza ente chiaramente identificabile.")
+
+if any(frase in text.lower() for frase in tono_pressante):
+    score += 15
+    signals.append("Tono pressante o minaccioso tipico dei messaggi truffaldini.")
     # Nuovo blocco: analisi più severa dei domini phishing-like
     domain_score, domain_reasons = score_suspicious_domains(domains)
     score += domain_score
