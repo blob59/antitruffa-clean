@@ -920,7 +920,7 @@
           <div class="section-head" style="margin-bottom:10px;">
             <div>
               <h3>Segnala una possibile truffa</h3>
-              <p>Aiuta a costruire un archivio utile per tutti.</p>
+              <p>Contribuisci alla statistica delle truffe senza pubblicare il messaggio integrale.</p>
             </div>
           </div>
 
@@ -937,7 +937,7 @@
                 </select>
               </div>
               <div class="field">
-                <label for="reportSource">Fonte</label>
+                <label for="reportSource">Fonte (facoltativa, non memorizzata)</label>
                 <input id="reportSource" name="source" placeholder="WhatsApp, SMS, email, telefonata..." />
               </div>
             </div>
@@ -949,7 +949,7 @@
 
             <div class="actions">
               <button class="btn" type="submit">Invia segnalazione</button>
-              <span class="hint">Non inserire password reali, OTP o dati troppo sensibili.</span>
+              <span class="hint">Il contenuto è inviato al server per calcolarne una impronta; il testo integrale non viene conservato nel database. Non inserire password, OTP o dati personali.</span>
             </div>
           </form>
         </article>
@@ -1064,7 +1064,7 @@
       let headline = 'Analisi completata';
       let summary = 'Ecco la valutazione del contenuto.';
       let explanation = data.simple_explanation || data.explanation || '';
-      let advice = Array.isArray(data.advice) ? data.advice : [];
+      let advice = Array.isArray(data.advice) ? [...data.advice] : [];\n      advice.unshift('Un punteggio basso non certifica che un messaggio sia autentico. Verifica sempre dai canali ufficiali.');
       let signals = Array.isArray(data.signals) ? data.signals : [];
 
       if (dangerLevels.includes(level) || score >= 70) {
@@ -1091,9 +1091,9 @@
         ];
       } else {
         badgeClass = 'safe';
-        badgeText = '🟢 Più sicuro';
+        badgeText = '🟢 Pochi indizi';
         headline = 'Pochi segnali di rischio';
-        summary = 'Non emergono indicatori forti di truffa.';
+        summary = 'Non emergono indicatori forti, ma questo NON significa che il messaggio sia sicuro.';
         if (!explanation) explanation = 'Al momento non ci sono segnali evidenti di truffa, ma un controllo finale umano resta sempre la scelta più prudente.';
         if (!advice.length) advice = [
           'Controlla comunque il mittente e il contesto.',
