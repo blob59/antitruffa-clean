@@ -37,10 +37,14 @@ class AnalyzeRequest(BaseModel):
 
 class ReportRequest(BaseModel):
     text: Optional[str] = None
+    # Il modulo HTML invia 'content', non 'text': entrambi sono accettati.
+    content: Optional[str] = None
+    type: Optional[str] = None
     fingerprint: Optional[str] = None
-    score: Optional[int] = 0
-    level: Optional[str] = "basso"
-    category: Optional[str] = "Sconosciuta"
+    score: Optional[int] = None
+    # Una segnalazione non equivale a una verifica automatica.
+    level: Optional[str] = "da_verificare"
+    category: Optional[str] = None
 
 
 # =========================
@@ -630,30 +634,41 @@ def health():
 @app.post("/analyze")
 def analyze_api(payload: AnalyzeRequest):
     text = get_input_text(payload)
+    if len(text) > 10000:
+        return JSONResponse(status_code=413, content={"error": "Massimo 10.000 caratteri."})
     result = analyze_text(text)
+    # Il punteggio è solo una valutazione di indizi, non certifica la sicurezza.
+    result["disclaimer"] = "Nessuna analisi automatica garantisce che un messaggio sia sicuro."
     return result
 
 
 @app.post("/api/report")
 @app.post("/report")
 def report_api(payload: ReportRequest):
-    text = (payload.text or "").strip()
-    fingerprint = (payload.fingerprint or "").strip()
-
-    if not fingerprint:
-        if not text:
-            return JSONResponse(
-                status_code=400,
-                content={"error": "Serve almeno text oppure fingerprint."}
-            )
+    # Ridurre i dati raccolti: non conservare il messaggio integrale nel database.
+    text = (payload.text or payload.content or "").strip()
+    fingerprint = (payload.fingerprint or "").strip().lower()
+    if len(text) > 10000:
+        return JSONResponse(status_code=413, content={"error": "Massimo 10.000 caratteri."})
+    if text:
+        # Un fingerprint dichiarato dal client non sostituisce quello del contenuto.
         fingerprint = make_fingerprint(text)
+    elif not re.fullmatch(r"[0-9a-f]{24}", fingerprint):
+        return JSONResponse(status_code=400, content={"error": "Serve un testo o fingerprint valido."})
+
+    category = str(payload.category or payload.type or "Sconosciuta").strip()[:80]
+    level = str(payload.level or "da_verificare").strip()[:40]
+    if level not in ("da_verificare", "basso", "medio", "alto"):
+        level = "da_verificare"
+    score = int(payload.score) if payload.score is not None else 0
+    score = max(0, min(100, score))
 
     result = save_report_if_new(
         fingerprint=fingerprint,
-        original_text=text,
-        score=int(payload.score or 0),
-        level=str(payload.level or "basso"),
-        category=str(payload.category or "Sconosciuta")
+        original_text="",  # Non archiviare testo privato senza consenso informato.
+        score=score,
+        level=level,
+        category=category
     )
 
     return {
